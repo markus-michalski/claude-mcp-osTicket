@@ -9,6 +9,24 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+---
+
+## [1.1.0] - 2025-10-18
+
+### Added
+- Add Phase 2 features - API integration and metadata service
+- Add file-based logging and fix SSH tunnel port forwarding
+- Initial implementation of osTicket MCP Server
+
+### Changed
+- Add --scope user for global MCP registration
+- Fix DEPLOYMENT.md for Claude Code CLI
+
+### Fixed
+- Use ost_user_email for user email address
+- Use ost_ticket__cdata for subject field
+- Load .env from absolute deployment path
+
 ### Added
 - create_ticket Tool für API-basierte Ticket-Erstellung
 - MetadataService für intelligente Department/Topic-Zuordnung
@@ -52,5 +70,6 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## Versionshistorie
 
-[Unreleased]: https://github.com/username/claude-mcp-osticket/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/markus-michalski/claude-mcp-osTicket/compare/v1.1.0...HEAD
 [1.0.0]: https://github.com/username/claude-mcp-osticket/releases/tag/v1.0.0
+[1.1.0]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v1.1.0
