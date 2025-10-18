@@ -2,6 +2,9 @@
 
 **Nach der Entwicklung:** So deployest du den MCP Server nach `~/.claude/mcp-servers/osticket/`
 
+> **⚠️ WICHTIG:** Diese Anleitung ist für **Claude Code CLI** (Terminal-Tool).
+> Falls du **Claude Desktop** (Desktop-App) nutzt, siehe [Claude Desktop MCP Docs](https://docs.claude.com/en/docs/build-with-claude/mcp).
+
 ---
 
 ## Schritt 1: Liveserver vorbereiten
@@ -109,33 +112,35 @@ ls -la ~/.claude/mcp-servers/osticket/
 
 ---
 
-## Schritt 5: Claude Code konfigurieren
+## Schritt 5: MCP-Server in Claude Code registrieren
+
+**WICHTIG:** Claude Code CLI nutzt `claude mcp add` Befehl, NICHT `mcp-servers.json`!
 
 ```bash
-# MCP-Konfiguration erstellen/erweitern
-nano ~/.claude/mcp-servers.json
+# MCP-Server registrieren
+claude mcp add --transport stdio osticket -- node /home/markus/.claude/mcp-servers/osticket/dist/index.js
 ```
 
-**Inhalt:**
+**Output:**
+```
+Added stdio MCP server osticket with command: node /home/markus/.claude/mcp-servers/osticket/dist/index.js to local config
+```
 
-```json
-{
-  "mcpServers": {
-    "osticket": {
-      "command": "node",
-      "args": [
-        "/home/markus/.claude/mcp-servers/osticket/dist/index.js"
-      ],
-      "env": {}
-    }
-  }
-}
+**Prüfen ob registriert:**
+
+```bash
+claude mcp list
+```
+
+**Sollte zeigen:**
+```
+osticket: node /home/markus/.claude/mcp-servers/osticket/dist/index.js - ✓ Connected
 ```
 
 **WICHTIG:**
-- Pfad muss absolut sein!
 - Passe `/home/markus` an deinen Username an
-- `env: {}` bleibt leer (Umgebungsvariablen kommen aus `.env`)
+- Der Server wird nun **automatisch beim Start** von Claude Code geladen
+- Umgebungsvariablen kommen aus der `.env` Datei im MCP-Server-Verzeichnis
 
 ---
 
@@ -167,13 +172,23 @@ ls -la ~/.ssh/claude_osticket
 
 ---
 
-## Schritt 7: Claude Code starten
+## Schritt 7: MCP-Server testen
+
+**Der Server ist jetzt registriert!** Er wird automatisch geladen wenn du Claude Code startest.
+
+**Status prüfen:**
 
 ```bash
-# Claude Code komplett beenden (falls offen)
-# Dann neu starten
+# In Claude Code
+/doctor
 
-# Der MCP Server wird automatisch beim Start geladen
+# Oder im Terminal:
+claude mcp list
+```
+
+**Erwartete Ausgabe:**
+```
+osticket: node /home/markus/.claude/mcp-servers/osticket/dist/index.js - ✓ Connected
 ```
 
 **Server-Logs checken:**
@@ -181,8 +196,11 @@ ls -la ~/.ssh/claude_osticket
 Da MCP über stdio läuft, sind `console.log` Ausgaben **nicht sichtbar**. Alle Logs werden in eine Datei geschrieben:
 
 ```bash
-# Logs anschauen
+# Logs live anschauen
 tail -f ~/.claude/mcp-servers/osticket/logs/server.log
+
+# Letzte 50 Zeilen
+tail -50 ~/.claude/mcp-servers/osticket/logs/server.log
 ```
 
 **Erfolgreicher Start sieht so aus:**
@@ -192,11 +210,7 @@ tail -f ~/.claude/mcp-servers/osticket/logs/server.log
 [Config] Loaded configuration:
   SSH: claude@dein-server:DEIN_PORT
   DB: osticket_readonly@127.0.0.1:3306/mm_tickets
-  ...
-[2025-10-18T12:36:55.050Z] [INFO ] Connecting to database...
-[2025-10-18T12:36:55.050Z] [INFO ] [DB] Setting up SSH tunnel...
 [2025-10-18T12:36:55.607Z] [INFO ] [DB] SSH tunnel established: localhost:36793 -> 127.0.0.1:3306
-[2025-10-18T12:36:55.608Z] [INFO ] [DB] MySQL connection pool created
 [2025-10-18T12:36:56.069Z] [INFO ] ✓ Database connected
 [2025-10-18T12:36:56.117Z] [INFO ] ✓ Health check passed
 [2025-10-18T12:36:56.118Z] [INFO ] ✓ Server running and ready
@@ -247,12 +261,50 @@ cp -r dist ~/.claude/mcp-servers/osticket/
 # Falls node_modules geändert:
 cp -r node_modules ~/.claude/mcp-servers/osticket/
 
-# Claude Code neustarten
+# MCP-Server neu laden (Claude Code erkennt Änderungen automatisch beim nächsten Request)
+# Optional: Server manuell neustarten
+claude mcp list  # Prüft Verbindung und startet neu falls nötig
 ```
 
 ---
 
 ## 🐛 Troubleshooting
+
+### Problem: "No MCP servers configured"
+
+```bash
+# Prüfe ob Server registriert ist
+claude mcp list
+
+# Falls leer: Server neu registrieren
+claude mcp add --transport stdio osticket -- node /home/markus/.claude/mcp-servers/osticket/dist/index.js
+
+# In Claude Code prüfen
+/doctor
+```
+
+### Problem: Server zeigt "❌ Not connected"
+
+```bash
+# Logs prüfen
+tail -50 ~/.claude/mcp-servers/osticket/logs/server.log
+
+# Server manuell testen
+cd ~/.claude/mcp-servers/osticket
+node dist/index.js
+
+# Sollte Config ausgeben und "✓ Server running and ready" zeigen
+```
+
+### Problem: MCP-Tools nicht verfügbar in Claude Code
+
+```bash
+# Server entfernen und neu hinzufügen
+claude mcp remove osticket
+claude mcp add --transport stdio osticket -- node /home/markus/.claude/mcp-servers/osticket/dist/index.js
+
+# Claude Code komplett neu starten
+```
 
 ### Problem: "SSH key file not found"
 
