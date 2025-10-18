@@ -8,7 +8,8 @@
 - ✅ Readonly-Access zu osTicket-Datenbank
 - ✅ Connection Pooling & Circuit Breaker Pattern
 - ✅ Intelligentes Multi-Layer-Caching
-- ✅ 4 MCP Tools: get_ticket, list_tickets, search_tickets, get_ticket_stats
+- ✅ 5 MCP Tools: get_ticket, list_tickets, search_tickets, get_ticket_stats, **create_ticket**
+- ✅ osTicket API-Integration für Ticket-Erstellung
 - ✅ Production-ready mit Monitoring & Health Checks
 
 ## 🏗️ Architektur
@@ -148,6 +149,40 @@ Aggregierte Statistiken über alle Tickets.
 ```typescript
 mcp__osticket__get_ticket_stats({})
 ```
+
+### `create_ticket` (NEU)
+
+Erstellt ein neues osTicket-Ticket über die osTicket API.
+
+**Voraussetzungen:**
+- `OSTICKET_API_URL` und `OSTICKET_API_KEY` in `.env` konfiguriert
+- API-Key in osTicket Admin Panel erstellt (Admin Panel → Manage → API Keys)
+
+```typescript
+mcp__osticket__create_ticket({
+  name: 'Max Mustermann',
+  email: 'max@example.com',
+  subject: 'Test-Ticket via API',
+  message: 'Dies ist eine Testmeldung',
+  topicId: 1,  // Optional: Help Topic ID
+  departmentId: 2  // Optional: Department ID
+})
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "ticketNumber": "363235",
+  "message": "Ticket created successfully with number: 363235"
+}
+```
+
+**Error-Handling:**
+- 401: Invalid API Key
+- 403: Access denied
+- 400: Invalid parameters
+- 500: osTicket API error
 
 ## 🔍 Monitoring & Health
 

@@ -1,12 +1,18 @@
 import { TicketService } from '../../core/services/TicketService.js';
+import { MetadataService } from '../../core/services/MetadataService.js';
 import { TicketFilters, TicketStatus } from '../../core/entities/Ticket.js';
+import { OsTicketApiClient } from '../../infrastructure/http/OsTicketApiClient.js';
 
 /**
  * MCP Tool Handlers
  * Translates MCP tool calls to service calls
  */
 export class ToolHandlers {
-  constructor(private readonly ticketService: TicketService) {}
+  constructor(
+    private readonly ticketService: TicketService,
+    private readonly metadataService: MetadataService,
+    private readonly apiClient?: OsTicketApiClient
+  ) {}
 
   /**
    * Handle get_ticket tool call
@@ -124,6 +130,108 @@ export class ToolHandlers {
     } catch (error) {
       return {
         error: `Failed to get statistics: ${error instanceof Error ? error.message : String(error)}`
+      };
+    }
+  }
+
+  /**
+   * Handle create_ticket tool call
+   */
+  async handleCreateTicket(args: {
+    name: string;
+    email: string;
+    subject: string;
+    message: string;
+    departmentId?: number;
+    topicId?: number;
+    departmentName?: string;
+    topicName?: string;
+  }): Promise<any> {
+    try {
+      // Check if API client is available
+      if (!this.apiClient) {
+        return {
+          error: 'API client not configured. Set OSTICKET_API_URL and OSTICKET_API_KEY in .env'
+        };
+      }
+
+      // Validate required fields
+      if (!args.name || args.name.trim().length === 0) {
+        return { error: 'Name parameter is required' };
+      }
+
+      if (!args.email || args.email.trim().length === 0) {
+        return { error: 'Email parameter is required' };
+      }
+
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(args.email)) {
+        return { error: 'Invalid email format' };
+      }
+
+      if (!args.subject || args.subject.trim().length === 0) {
+        return { error: 'Subject parameter is required' };
+      }
+
+      if (!args.message || args.message.trim().length === 0) {
+        return { error: 'Message parameter is required' };
+      }
+
+      // Resolve department name to ID (if provided)
+      if (args.departmentName && !args.departmentId) {
+        try {
+          const dept = await this.metadataService.findDepartmentByName(args.departmentName);
+          if (dept) {
+            args.departmentId = dept.id;
+          }
+        } catch (error) {
+          // Re-throw with department list
+          return {
+            error: error instanceof Error ? error.message : String(error)
+          };
+        }
+      }
+
+      // Resolve topic name to ID (if provided)
+      if (args.topicName && !args.topicId) {
+        try {
+          const topic = await this.metadataService.findTopicByName(args.topicName);
+          if (topic) {
+            args.topicId = topic.id;
+          }
+        } catch (error) {
+          // Re-throw with topic list
+          return {
+            error: error instanceof Error ? error.message : String(error)
+          };
+        }
+      }
+
+      // Create ticket via API
+      const ticketNumber = await this.apiClient.createTicket({
+        name: args.name.trim(),
+        email: args.email.trim(),
+        subject: args.subject.trim(),
+        message: args.message.trim(),
+        topicId: args.topicId,
+        departmentId: args.departmentId,
+        alert: false,
+        autorespond: false
+      });
+
+      return {
+        success: true,
+        ticketNumber,
+        message: `Ticket created successfully with number: ${ticketNumber}`,
+        metadata: {
+          departmentId: args.departmentId,
+          topicId: args.topicId
+        }
+      };
+    } catch (error) {
+      return {
+        error: `Failed to create ticket: ${error instanceof Error ? error.message : String(error)}`
       };
     }
   }

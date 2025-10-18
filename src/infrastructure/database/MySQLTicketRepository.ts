@@ -1,4 +1,5 @@
 import { ITicketRepository } from '../../core/repositories/ITicketRepository.js';
+import { IMetadataRepository } from '../../core/repositories/IMetadataRepository.js';
 import {
   Ticket,
   TicketListItem,
@@ -10,13 +11,16 @@ import {
   MessageFormat,
   DepartmentStats
 } from '../../core/entities/Ticket.js';
+import { Department } from '../../core/entities/Department.js';
+import { HelpTopic } from '../../core/entities/HelpTopic.js';
 import { DatabaseConnectionManager } from './DatabaseConnectionManager.js';
 
 /**
  * MySQL Implementation of Ticket Repository
  * Uses optimized queries to avoid N+1 problems
+ * Also implements Metadata Repository for departments and topics
  */
-export class MySQLTicketRepository implements ITicketRepository {
+export class MySQLTicketRepository implements ITicketRepository, IMetadataRepository {
   constructor(
     private readonly db: DatabaseConnectionManager,
     private readonly tablePrefix: string = 'ost_'
@@ -376,5 +380,92 @@ export class MySQLTicketRepository implements ITicketRepository {
       case 'markdown': return MessageFormat.MARKDOWN;
       default: return MessageFormat.TEXT;
     }
+  }
+
+  /**
+   * Query all departments with hierarchical paths
+   * Builds full path by traversing parent relationships
+   */
+  async queryDepartments(): Promise<Department[]> {
+    const sql = `
+      SELECT
+        d.id,
+        d.name,
+        d.pid as parent_id,
+        d.ispublic,
+        d.flags
+      FROM ${this.tablePrefix}department d
+      ORDER BY d.name ASC
+    `;
+
+    const rows = await this.db.query<any>(sql);
+
+    // Build department map for path construction
+    const deptMap = new Map<number, any>();
+    rows.forEach(row => deptMap.set(row.id, row));
+
+    // Build full paths
+    const departments: Department[] = rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      parentId: row.parent_id || null,
+      path: this.buildDepartmentPath(row.id, deptMap),
+      isPublic: Boolean(row.ispublic),
+      isActive: !(row.flags & 0x01) // Active if NOT archived (flag 0x01)
+    }));
+
+    return departments;
+  }
+
+  /**
+   * Query all help topics
+   */
+  async queryHelpTopics(): Promise<HelpTopic[]> {
+    const sql = `
+      SELECT
+        topic_id,
+        topic as name,
+        dept_id,
+        priority_id,
+        flags,
+        ispublic
+      FROM ${this.tablePrefix}help_topic
+      ORDER BY topic ASC
+    `;
+
+    const rows = await this.db.query<any>(sql);
+
+    return rows.map(row => ({
+      id: row.topic_id,
+      name: row.name,
+      departmentId: row.dept_id,
+      isActive: !(row.flags & 0x01), // Active if NOT disabled (flag 0x01)
+      priorityId: row.priority_id || undefined,
+      isPublic: Boolean(row.ispublic)
+    }));
+  }
+
+  /**
+   * Build hierarchical department path by traversing parent relationships
+   * Example: "Projekte / OXID 7 / Sitemap"
+   */
+  private buildDepartmentPath(deptId: number, deptMap: Map<number, any>): string {
+    const path: string[] = [];
+    let currentId: number | null = deptId;
+
+    // Prevent infinite loops with max depth
+    let depth = 0;
+    const maxDepth = 10;
+
+    while (currentId !== null && depth < maxDepth) {
+      const dept = deptMap.get(currentId);
+      if (!dept) break;
+
+      path.unshift(dept.name);
+      currentId = dept.parent_id || null;
+      depth++;
+    }
+
+    return path.join(' / ');
   }
 }

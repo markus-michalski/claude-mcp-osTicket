@@ -18,9 +18,11 @@ import { DatabaseConnectionManager } from './infrastructure/database/DatabaseCon
 import { InMemoryCacheProvider } from './infrastructure/cache/InMemoryCacheProvider.js';
 import { MySQLTicketRepository } from './infrastructure/database/MySQLTicketRepository.js';
 import { Logger } from './infrastructure/logging/Logger.js';
+import { OsTicketApiClient } from './infrastructure/http/OsTicketApiClient.js';
 
 // Core
 import { TicketService } from './core/services/TicketService.js';
+import { MetadataService } from './core/services/MetadataService.js';
 
 // Application
 import { ToolHandlers } from './application/handlers/ToolHandlers.js';
@@ -36,6 +38,8 @@ class OsTicketMCPServer {
   private dbManager: DatabaseConnectionManager | null = null;
   private cacheProvider: InMemoryCacheProvider | null = null;
   private ticketService: TicketService | null = null;
+  private metadataService: MetadataService | null = null;
+  private apiClient: OsTicketApiClient | null = null;
   private handlers: ToolHandlers | null = null;
   private server: Server;
 
@@ -113,8 +117,23 @@ class OsTicketMCPServer {
 
     this.ticketService = new TicketService(repository, this.cacheProvider);
 
+    // Initialize metadata service
+    this.metadataService = new MetadataService(repository);
+
+    // Initialize API client (optional - only if API key is configured)
+    if (this.config.osTicketApiKey) {
+      this.apiClient = new OsTicketApiClient(
+        this.config.osTicketApiUrl,
+        this.config.osTicketApiKey,
+        !this.config.osTicketApiRejectUnauthorized
+      );
+      this.logger.info('✓ API client initialized');
+    } else {
+      this.logger.warn('⚠ API client not initialized (OSTICKET_API_KEY not set)');
+    }
+
     // Initialize handlers
-    this.handlers = new ToolHandlers(this.ticketService);
+    this.handlers = new ToolHandlers(this.ticketService, this.metadataService, this.apiClient || undefined);
 
     // Connect to database
     this.logger.info('Connecting to database...');
@@ -205,6 +224,48 @@ class OsTicketMCPServer {
               properties: {},
             },
           },
+          {
+            name: 'create_ticket',
+            description: 'Create a new osTicket ticket via API. Supports intelligent department/topic lookup by name.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                name: {
+                  type: 'string',
+                  description: 'User name',
+                },
+                email: {
+                  type: 'string',
+                  description: 'User email address',
+                },
+                subject: {
+                  type: 'string',
+                  description: 'Ticket subject',
+                },
+                message: {
+                  type: 'string',
+                  description: 'Ticket message/description',
+                },
+                departmentId: {
+                  type: 'number',
+                  description: 'Department ID (optional, use either this OR departmentName)',
+                },
+                departmentName: {
+                  type: 'string',
+                  description: 'Department name or path (alternative to departmentId). Supports fuzzy matching, e.g., "Sitemap", "OXID Sitemap", or "Projekte / OXID 7 / Sitemap"',
+                },
+                topicId: {
+                  type: 'number',
+                  description: 'Help Topic ID (optional, use either this OR topicName)',
+                },
+                topicName: {
+                  type: 'string',
+                  description: 'Help topic name (alternative to topicId). Supports fuzzy matching and aliases, e.g., "Feature", "Bug", "Support"',
+                },
+              },
+              required: ['name', 'email', 'subject', 'message'],
+            },
+          },
         ],
       };
     });
@@ -243,6 +304,10 @@ class OsTicketMCPServer {
 
           case 'get_ticket_stats':
             result = await this.handlers.handleGetStats();
+            break;
+
+          case 'create_ticket':
+            result = await this.handlers.handleCreateTicket(args as any);
             break;
 
           default:
