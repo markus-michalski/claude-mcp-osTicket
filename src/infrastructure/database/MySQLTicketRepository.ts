@@ -42,7 +42,7 @@ export class MySQLTicketRepository implements ITicketRepository {
         ts.state as status_state,
         u.id as user_id,
         u.name as user_name,
-        u.email as user_email,
+        ue.address as user_email,
         d.name as department_name,
         s.staff_id,
         CONCAT(s.firstname, ' ', s.lastname) as staff_name
@@ -50,6 +50,7 @@ export class MySQLTicketRepository implements ITicketRepository {
       LEFT JOIN ${this.tablePrefix}ticket__cdata cd ON t.ticket_id = cd.ticket_id
       LEFT JOIN ${this.tablePrefix}ticket_status ts ON t.status_id = ts.id
       LEFT JOIN ${this.tablePrefix}user u ON t.user_id = u.id
+      LEFT JOIN ${this.tablePrefix}user_email ue ON u.default_email_id = ue.id
       LEFT JOIN ${this.tablePrefix}department d ON t.dept_id = d.id
       LEFT JOIN ${this.tablePrefix}staff s ON t.staff_id = s.staff_id
       WHERE t.ticket_id = ?
