@@ -31,7 +31,7 @@ export class MySQLTicketRepository implements ITicketRepository {
       SELECT
         t.ticket_id,
         t.number,
-        t.subject,
+        cd.subject,
         t.created,
         t.updated as lastupdate,
         t.duedate,
@@ -47,6 +47,7 @@ export class MySQLTicketRepository implements ITicketRepository {
         s.staff_id,
         CONCAT(s.firstname, ' ', s.lastname) as staff_name
       FROM ${this.tablePrefix}ticket t
+      LEFT JOIN ${this.tablePrefix}ticket__cdata cd ON t.ticket_id = cd.ticket_id
       LEFT JOIN ${this.tablePrefix}ticket_status ts ON t.status_id = ts.id
       LEFT JOIN ${this.tablePrefix}user u ON t.user_id = u.id
       LEFT JOIN ${this.tablePrefix}department d ON t.dept_id = d.id
@@ -106,7 +107,7 @@ export class MySQLTicketRepository implements ITicketRepository {
       SELECT
         t.ticket_id,
         t.number,
-        t.subject,
+        cd.subject,
         t.created,
         t.updated,
         t.isoverdue,
@@ -125,6 +126,7 @@ export class MySQLTicketRepository implements ITicketRepository {
          WHERE th.object_id = t.ticket_id
          AND th.object_type = 'T') as last_response
       FROM ${this.tablePrefix}ticket t
+      LEFT JOIN ${this.tablePrefix}ticket__cdata cd ON t.ticket_id = cd.ticket_id
       LEFT JOIN ${this.tablePrefix}ticket_status ts ON t.status_id = ts.id
       LEFT JOIN ${this.tablePrefix}user u ON t.user_id = u.id
       LEFT JOIN ${this.tablePrefix}department d ON t.dept_id = d.id
@@ -176,7 +178,7 @@ export class MySQLTicketRepository implements ITicketRepository {
       SELECT
         t.ticket_id,
         t.number,
-        t.subject,
+        cd.subject,
         t.created,
         t.updated,
         t.isoverdue,
@@ -187,12 +189,13 @@ export class MySQLTicketRepository implements ITicketRepository {
         0 as reply_count,
         NULL as last_response
       FROM ${this.tablePrefix}ticket t
+      LEFT JOIN ${this.tablePrefix}ticket__cdata cd ON t.ticket_id = cd.ticket_id
       LEFT JOIN ${this.tablePrefix}ticket_status ts ON t.status_id = ts.id
       LEFT JOIN ${this.tablePrefix}user u ON t.user_id = u.id
       LEFT JOIN ${this.tablePrefix}department d ON t.dept_id = d.id
       WHERE
         t.number LIKE ?
-        OR t.subject LIKE ?
+        OR cd.subject LIKE ?
       ORDER BY
         CASE
           WHEN t.number = ? THEN 1
