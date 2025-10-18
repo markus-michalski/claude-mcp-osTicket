@@ -117,14 +117,18 @@ ls -la ~/.claude/mcp-servers/osticket/
 **WICHTIG:** Claude Code CLI nutzt `claude mcp add` Befehl, NICHT `mcp-servers.json`!
 
 ```bash
-# MCP-Server registrieren
-claude mcp add --transport stdio osticket -- node /home/markus/.claude/mcp-servers/osticket/dist/index.js
+# MCP-Server GLOBAL registrieren (für alle Projekte)
+claude mcp add --scope user --transport stdio osticket -- node /home/markus/.claude/mcp-servers/osticket/dist/index.js
 ```
 
 **Output:**
 ```
-Added stdio MCP server osticket with command: node /home/markus/.claude/mcp-servers/osticket/dist/index.js to local config
+Added stdio MCP server osticket with command: node /home/markus/.claude/mcp-servers/osticket/dist/index.js to user config
 ```
+
+**⚠️ WICHTIG:** `--scope user` macht den Server in **allen** Projekten verfügbar!
+- **Ohne `--scope`:** Nur im aktuellen Projekt
+- **Mit `--scope user`:** Global für alle Projekte ✅
 
 **Prüfen ob registriert:**
 
