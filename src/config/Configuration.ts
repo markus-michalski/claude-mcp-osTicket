@@ -1,5 +1,7 @@
 import * as dotenv from 'dotenv';
 import { existsSync } from 'fs';
+import { join } from 'path';
+import { homedir } from 'os';
 
 /**
  * Application Configuration
@@ -35,8 +37,14 @@ export class Configuration {
   public readonly metricsEnabled: boolean;
 
   constructor() {
-    // Load .env file
-    dotenv.config();
+    // Load .env file from deployment directory (not CWD!)
+    const envPath = join(homedir(), '.claude', 'mcp-servers', 'osticket', '.env');
+    if (existsSync(envPath)) {
+      dotenv.config({ path: envPath });
+    } else {
+      // Fallback to CWD for development
+      dotenv.config();
+    }
 
     // SSH Configuration
     this.sshHost = this.getRequired('SSH_HOST');
