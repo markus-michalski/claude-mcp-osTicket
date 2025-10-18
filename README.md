@@ -1,0 +1,201 @@
+# osTicket MCP Server
+
+**Model Context Protocol Server** für projektübergreifende osTicket-Integration in Claude Code.
+
+## 🎯 Features
+
+- ✅ SSH-Tunnel-basierter Zugriff auf Remote-MariaDB
+- ✅ Readonly-Access zu osTicket-Datenbank
+- ✅ Connection Pooling & Circuit Breaker Pattern
+- ✅ Intelligentes Multi-Layer-Caching
+- ✅ 4 MCP Tools: get_ticket, list_tickets, search_tickets, get_ticket_stats
+- ✅ Production-ready mit Monitoring & Health Checks
+
+## 🏗️ Architektur
+
+```
+┌─────────────────────────────────────┐
+│ Claude Code                         │
+│  └─ MCP Protocol                    │
+├─────────────────────────────────────┤
+│ MCP Server (Node.js/TypeScript)     │
+│  ├─ Application Layer               │
+│  │   └─ MCP Tool Handlers           │
+│  ├─ Core Layer (Domain Logic)       │
+│  │   └─ osTicket Service            │
+│  └─ Infrastructure Layer            │
+│      ├─ SSH Tunnel Pool             │
+│      ├─ MySQL Connection Pool       │
+│      └─ Hybrid Cache Provider       │
+├─────────────────────────────────────┤
+│ SSH Tunnel (automatisch)            │
+├─────────────────────────────────────┤
+│ Liveserver                          │
+│  └─ MariaDB (mm_tickets)            │
+└─────────────────────────────────────┘
+```
+
+## 📋 Voraussetzungen
+
+- Node.js 18+
+- SSH-Zugang zum Liveserver mit Key-Auth
+- MariaDB readonly-User auf Liveserver
+
+## 🚀 Setup
+
+### 1. Liveserver vorbereiten
+
+Siehe [LIVESERVER_SETUP.md](./LIVESERVER_SETUP.md) für:
+- SSH-User `claude` anlegen
+- SSH-Key deployen
+- MariaDB readonly-User erstellen
+
+### 2. Lokale Installation
+
+```bash
+# Dependencies installieren
+npm install
+
+# .env-Datei erstellen
+cp .env.example .env
+nano .env  # Zugangsdaten eintragen
+
+# TypeScript kompilieren
+npm run build
+```
+
+### 3. Claude Code konfigurieren
+
+```bash
+# MCP Server nach ~/.claude kopieren
+mkdir -p ~/.claude/mcp-servers/osticket
+cp -r dist node_modules package.json .env ~/.claude/mcp-servers/osticket/
+```
+
+**~/.claude/mcp-servers.json** erstellen/erweitern:
+
+```json
+{
+  "mcpServers": {
+    "osticket": {
+      "command": "node",
+      "args": [
+        "/home/markus/.claude/mcp-servers/osticket/dist/index.js"
+      ],
+      "env": {}
+    }
+  }
+}
+```
+
+### 4. Claude Code neustarten
+
+Der MCP Server wird automatisch beim Start geladen.
+
+## 🔧 Development
+
+```bash
+# Development-Modus mit Auto-Reload
+npm run dev
+
+# Type-Check ohne Build
+npm run type-check
+
+# Watch-Modus
+npm run watch
+
+# Linting
+npm run lint
+```
+
+## 📚 MCP Tools
+
+### `get_ticket`
+
+Lädt ein komplettes Ticket mit allen Messages.
+
+```typescript
+// Claude Code nutzt automatisch:
+mcp__osticket__get_ticket({ id: 123 })
+```
+
+### `list_tickets`
+
+Listet Tickets mit optionalen Filtern.
+
+```typescript
+mcp__osticket__list_tickets({
+  status: 'open',
+  limit: 20
+})
+```
+
+### `search_tickets`
+
+Volltextsuche in Subject und Number.
+
+```typescript
+mcp__osticket__search_tickets({
+  query: 'Dashboard Widget',
+  limit: 20
+})
+```
+
+### `get_ticket_stats`
+
+Aggregierte Statistiken über alle Tickets.
+
+```typescript
+mcp__osticket__get_ticket_stats({})
+```
+
+## 🔍 Monitoring & Health
+
+Der Server sammelt automatisch Metriken:
+
+- SSH-Verbindungsstatus
+- DB-Connection-Pool-Stats
+- Cache-Hit-Rate
+- Query-Performance
+- Error-Counts
+
+## 📖 Dokumentation
+
+- [LIVESERVER_SETUP.md](./LIVESERVER_SETUP.md) - Server-Setup-Anleitung
+- [MCP_OSTICKET_SETUP_Phase1.md](./MCP_OSTICKET_SETUP_Phase1.md) - Detaillierte Architektur
+
+## 🐛 Troubleshooting
+
+### SSH-Verbindung schlägt fehl
+
+```bash
+# SSH-Key testen
+ssh -i ~/.ssh/claude_osticket claude@liveserver
+
+# SSH-Debugging
+ssh -vvv -i ~/.ssh/claude_osticket claude@liveserver
+```
+
+### DB-Connection-Error
+
+```bash
+# In .env prüfen:
+# - DB_HOST muss 127.0.0.1 sein (nicht der Liveserver!)
+# - DB_USER/DB_PASS korrekt?
+
+# Direkt auf Liveserver testen:
+ssh claude@liveserver "mysql -u osticket_readonly -p mm_tickets -e 'SELECT COUNT(*) FROM ost_ticket;'"
+```
+
+### MCP Server wird nicht geladen
+
+```bash
+# Logs von Claude Code anschauen
+# MCP Server manuell testen:
+cd ~/.claude/mcp-servers/osticket
+node dist/index.js
+```
+
+## 📄 Lizenz
+
+MIT
