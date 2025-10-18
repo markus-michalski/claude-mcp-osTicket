@@ -1,6 +1,7 @@
 import { Client, ConnectConfig } from 'ssh2';
 import { EventEmitter } from 'events';
 import { readFileSync } from 'fs';
+import net from 'net';
 
 /**
  * Single SSH Tunnel Connection
@@ -11,6 +12,8 @@ export class SSHTunnelConnection extends EventEmitter {
   private isActive = false;
   private lastUsed = Date.now();
   private readonly config: ConnectConfig;
+  private localForwardingServer: net.Server | null = null;
+  private localPort: number = 0;
 
   constructor(config: {
     host: string;
@@ -88,6 +91,76 @@ export class SSHTunnelConnection extends EventEmitter {
   }
 
   /**
+   * Setup persistent local port forwarding
+   * Creates a local server that forwards all connections through SSH tunnel
+   */
+  async setupLocalForwarding(
+    localPort: number,
+    remoteHost: string,
+    remotePort: number
+  ): Promise<number> {
+    if (!this.client) {
+      throw new Error('SSH client not connected');
+    }
+
+    return new Promise((resolve, reject) => {
+      // Create local TCP server
+      this.localForwardingServer = net.createServer((localSocket) => {
+        // Forward each connection through SSH tunnel
+        this.client!.forwardOut(
+          '127.0.0.1',
+          localSocket.localPort || 0,
+          remoteHost,
+          remotePort,
+          (err, stream) => {
+            if (err) {
+              localSocket.end();
+              this.emit('forwardingError', err);
+              return;
+            }
+
+            // Pipe local socket <-> SSH stream <-> remote socket
+            localSocket.pipe(stream).pipe(localSocket);
+
+            localSocket.on('error', (error: Error) => {
+              this.emit('socketError', error);
+              stream.end();
+            });
+
+            stream.on('error', (error: Error) => {
+              this.emit('streamError', error);
+              localSocket.end();
+            });
+          }
+        );
+      });
+
+      // Start listening on local port
+      this.localForwardingServer.listen(localPort, '127.0.0.1', () => {
+        const addr = this.localForwardingServer!.address() as net.AddressInfo;
+        this.localPort = addr.port;
+        this.emit('forwardingReady', {
+          localPort: this.localPort,
+          remoteHost,
+          remotePort
+        });
+        resolve(this.localPort);
+      });
+
+      this.localForwardingServer.on('error', (error) => {
+        reject(error);
+      });
+    });
+  }
+
+  /**
+   * Get the local forwarding port
+   */
+  getLocalPort(): number {
+    return this.localPort;
+  }
+
+  /**
    * Reconnect with exponential backoff
    */
   async reconnect(maxAttempts = 3): Promise<void> {
@@ -114,6 +187,16 @@ export class SSHTunnelConnection extends EventEmitter {
    * Close SSH connection
    */
   async close(): Promise<void> {
+    // Close local forwarding server first
+    if (this.localForwardingServer) {
+      await new Promise<void>((resolve) => {
+        this.localForwardingServer!.close(() => resolve());
+      });
+      this.localForwardingServer = null;
+      this.localPort = 0;
+    }
+
+    // Close SSH client
     if (this.client) {
       this.client.end();
       this.client = null;

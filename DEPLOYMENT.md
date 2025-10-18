@@ -16,9 +16,9 @@ Falls noch nicht geschehen:
 ```
 
 ✅ **Checklist:**
-- [ ] SSH-User `claude` existiert
-- [ ] SSH-Key `~/.ssh/claude_osticket` erstellt und deployed
-- [ ] MariaDB-User `osticket_readonly` existiert
+- [x] SSH-User `claude` existiert
+- [x] SSH-Key `~/.ssh/claude_osticket` erstellt und deployed
+- [x] MariaDB-User `osticket_readonly` existiert
 
 ---
 
@@ -176,18 +176,30 @@ ls -la ~/.ssh/claude_osticket
 # Der MCP Server wird automatisch beim Start geladen
 ```
 
-**Du siehst dann im Terminal:**
+**Server-Logs checken:**
+
+Da MCP über stdio läuft, sind `console.log` Ausgaben **nicht sichtbar**. Alle Logs werden in eine Datei geschrieben:
+
+```bash
+# Logs anschauen
+tail -f ~/.claude/mcp-servers/osticket/logs/server.log
+```
+
+**Erfolgreicher Start sieht so aus:**
 
 ```
-[MCP] Starting osTicket MCP Server...
+[2025-10-18T12:36:55.047Z] [INFO ] Starting osTicket MCP Server...
 [Config] Loaded configuration:
   SSH: claude@dein-server:DEIN_PORT
   DB: osticket_readonly@127.0.0.1:3306/mm_tickets
   ...
-[MCP] Connecting to database...
-[MCP] ✓ Database connected
-[MCP] ✓ Health check passed
-[MCP] ✓ Server running and ready
+[2025-10-18T12:36:55.050Z] [INFO ] Connecting to database...
+[2025-10-18T12:36:55.050Z] [INFO ] [DB] Setting up SSH tunnel...
+[2025-10-18T12:36:55.607Z] [INFO ] [DB] SSH tunnel established: localhost:36793 -> 127.0.0.1:3306
+[2025-10-18T12:36:55.608Z] [INFO ] [DB] MySQL connection pool created
+[2025-10-18T12:36:56.069Z] [INFO ] ✓ Database connected
+[2025-10-18T12:36:56.117Z] [INFO ] ✓ Health check passed
+[2025-10-18T12:36:56.118Z] [INFO ] ✓ Server running and ready
 ```
 
 ---
@@ -295,23 +307,49 @@ node dist/index.js
 
 ---
 
-## 📊 Monitoring
+## 📊 Monitoring & Logs
 
-Der MCP Server loggt automatisch:
+Der MCP Server schreibt **alle Logs in eine Datei**, da `console.log` nicht sichtbar ist (MCP kommuniziert über stdio).
 
-- SSH-Verbindungsstatus
-- DB-Query-Performance
-- Cache-Hit-Rate
-- Circuit-Breaker-Status
-
-**Logs anschauen:**
+**Log-Dateien:**
 
 ```bash
-# Claude Code im Terminal starten
-claude-code
+# Server-Logs anschauen
+tail -f ~/.claude/mcp-servers/osticket/logs/server.log
 
-# Logs werden live angezeigt
+# Letzte 50 Zeilen
+tail -50 ~/.claude/mcp-servers/osticket/logs/server.log
+
+# Debug-Logs aktivieren
+echo "LOG_LEVEL=debug" >> ~/.claude/mcp-servers/osticket/.env
+# Claude Code neustarten
 ```
+
+**Was wird geloggt:**
+
+- ✅ SSH-Tunnel-Verbindungen (localhost:PORT -> remote:3306)
+- ✅ DB-Connection-Status
+- ✅ Query-Performance (langsame Queries > 1s)
+- ✅ Fehler und Warnings
+- ✅ Health-Checks
+- ✅ Server-Startup/Shutdown
+
+**Debug-Modus:**
+
+```bash
+# Ausführliches Logging aktivieren
+MCP_DEBUG=true node ~/.claude/mcp-servers/osticket/dist/index.js
+
+# Oder in .env:
+echo "MCP_DEBUG=true" >> ~/.claude/mcp-servers/osticket/.env
+```
+
+**Log-Levels:**
+
+- `debug` - Sehr ausführlich (nur für Entwicklung)
+- `info` - Normal (empfohlen)
+- `warn` - Nur Warnungen
+- `error` - Nur Fehler
 
 ---
 

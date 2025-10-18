@@ -6,6 +6,8 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
+import { homedir } from 'os';
+import { join } from 'path';
 
 // Configuration
 import { Configuration } from './config/Configuration.js';
@@ -15,6 +17,7 @@ import { SSHTunnelPool } from './infrastructure/ssh/SSHTunnelPool.js';
 import { DatabaseConnectionManager } from './infrastructure/database/DatabaseConnectionManager.js';
 import { InMemoryCacheProvider } from './infrastructure/cache/InMemoryCacheProvider.js';
 import { MySQLTicketRepository } from './infrastructure/database/MySQLTicketRepository.js';
+import { Logger } from './infrastructure/logging/Logger.js';
 
 // Core
 import { TicketService } from './core/services/TicketService.js';
@@ -28,6 +31,7 @@ import { ToolHandlers } from './application/handlers/ToolHandlers.js';
  */
 class OsTicketMCPServer {
   private config: Configuration;
+  private logger: Logger;
   private tunnelPool: SSHTunnelPool | null = null;
   private dbManager: DatabaseConnectionManager | null = null;
   private cacheProvider: InMemoryCacheProvider | null = null;
@@ -37,6 +41,13 @@ class OsTicketMCPServer {
 
   constructor() {
     this.config = new Configuration();
+
+    // Initialize logger
+    const logFilePath = join(homedir(), '.claude', 'mcp-servers', 'osticket', 'logs', 'server.log');
+    this.logger = new Logger(
+      (process.env.LOG_LEVEL as any) || 'info',
+      logFilePath
+    );
 
     this.server = new Server(
       {
@@ -58,7 +69,7 @@ class OsTicketMCPServer {
    * Initialize all components
    */
   async initialize(): Promise<void> {
-    console.log('[MCP] Starting osTicket MCP Server...');
+    this.logger.info('Starting osTicket MCP Server...');
     this.config.logSummary();
 
     // Initialize infrastructure
@@ -106,16 +117,16 @@ class OsTicketMCPServer {
     this.handlers = new ToolHandlers(this.ticketService);
 
     // Connect to database
-    console.log('[MCP] Connecting to database...');
+    this.logger.info('Connecting to database...');
     await this.dbManager.connect();
-    console.log('[MCP] ✓ Database connected');
+    this.logger.info('✓ Database connected');
 
     // Health check
     const healthy = await this.ticketService.healthCheck();
     if (!healthy) {
       throw new Error('Health check failed - database not accessible');
     }
-    console.log('[MCP] ✓ Health check passed');
+    this.logger.info('✓ Health check passed');
   }
 
   /**
@@ -274,11 +285,11 @@ class OsTicketMCPServer {
     process.on('SIGINT', () => this.shutdown('SIGINT'));
     process.on('SIGTERM', () => this.shutdown('SIGTERM'));
     process.on('uncaughtException', (error) => {
-      console.error('[MCP] Uncaught exception:', error);
+      this.logger.error('Uncaught exception:', error);
       this.shutdown('uncaughtException');
     });
     process.on('unhandledRejection', (reason) => {
-      console.error('[MCP] Unhandled rejection:', reason);
+      this.logger.error('Unhandled rejection:', reason);
       this.shutdown('unhandledRejection');
     });
   }
@@ -292,14 +303,14 @@ class OsTicketMCPServer {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
 
-    console.log('[MCP] ✓ Server running and ready');
+    this.logger.info('✓ Server running and ready');
   }
 
   /**
    * Graceful shutdown
    */
   private async shutdown(signal: string): Promise<void> {
-    console.log(`\n[MCP] Received ${signal}, shutting down gracefully...`);
+    this.logger.warn(`Received ${signal}, shutting down gracefully...`);
 
     try {
       if (this.cacheProvider) {
@@ -314,10 +325,10 @@ class OsTicketMCPServer {
         await this.tunnelPool.shutdown();
       }
 
-      console.log('[MCP] ✓ Shutdown complete');
+      this.logger.info('✓ Shutdown complete');
       process.exit(0);
     } catch (error) {
-      console.error('[MCP] Error during shutdown:', error);
+      this.logger.error('Error during shutdown:', error);
       process.exit(1);
     }
   }
@@ -326,6 +337,6 @@ class OsTicketMCPServer {
 // Start server
 const server = new OsTicketMCPServer();
 server.start().catch((error) => {
-  console.error('[MCP] Failed to start server:', error);
+  process.stderr.write(`[MCP] Failed to start server: ${error}\n`);
   process.exit(1);
 });

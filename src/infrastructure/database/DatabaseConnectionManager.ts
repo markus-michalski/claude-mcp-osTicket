@@ -1,6 +1,7 @@
 import mysql from 'mysql2/promise';
 import { SSHTunnelPool } from '../ssh/SSHTunnelPool.js';
 import { CircuitBreaker } from './CircuitBreaker.js';
+import { Logger } from '../logging/Logger.js';
 
 /**
  * Database Connection Manager with SSH Tunnel support
@@ -9,6 +10,7 @@ import { CircuitBreaker } from './CircuitBreaker.js';
 export class DatabaseConnectionManager {
   private pool: mysql.Pool | null = null;
   private circuitBreaker = new CircuitBreaker();
+  private logger = new Logger().child('DB');
   private metrics = {
     totalQueries: 0,
     slowQueries: 0,
@@ -33,12 +35,25 @@ export class DatabaseConnectionManager {
    * Initialize connection pool
    */
   async connect(): Promise<void> {
-    // Ensure SSH tunnel is established first
-    await this.tunnelPool.getConnection();
+    this.logger.info('Setting up SSH tunnel...');
 
+    // Get SSH connection from pool
+    const sshConnection = await this.tunnelPool.getConnection();
+
+    // Setup local port forwarding
+    // This creates: localhost:RANDOM_PORT -> SSH-Server -> remote-db:3306
+    const localPort = await sshConnection.setupLocalForwarding(
+      0, // 0 = OS picks random available port
+      this.config.host, // Remote DB host (as seen from SSH server, e.g., 127.0.0.1)
+      this.config.port  // Remote DB port (e.g., 3306)
+    );
+
+    this.logger.info(`SSH tunnel established: localhost:${localPort} -> ${this.config.host}:${this.config.port}`);
+
+    // Create MySQL pool connecting to LOCAL port (forwarded through tunnel)
     this.pool = mysql.createPool({
-      host: this.config.host,
-      port: this.config.port,
+      host: '127.0.0.1',  // Connect to LOCAL forwarding port
+      port: localPort,     // Use the forwarded port
       database: this.config.database,
       user: this.config.user,
       password: this.config.password,
@@ -51,6 +66,8 @@ export class DatabaseConnectionManager {
       // Prepared statements for security & performance
       namedPlaceholders: false
     });
+
+    this.logger.info('MySQL connection pool created');
 
     // Test connection
     await this.healthCheck();
@@ -107,7 +124,7 @@ export class DatabaseConnectionManager {
       await this.query('SELECT 1 as health');
       return true;
     } catch (error) {
-      console.error('[DB] Health check failed:', error);
+      this.logger.error('Health check failed:', error);
       return false;
     }
   }
@@ -142,12 +159,12 @@ export class DatabaseConnectionManager {
 
     if (duration > 1000) {
       this.metrics.slowQueries++;
-      console.warn(`[DB] Slow query detected (${duration}ms):`, sql.substring(0, 100));
+      this.logger.warn(`Slow query detected (${duration}ms): ${sql.substring(0, 100)}`);
     }
   }
 
   private handleQueryError(error: any, sql: string): void {
-    console.error('[DB] Query error:', {
+    this.logger.error('Query error:', {
       error: error.message,
       code: error.code,
       sql: sql.substring(0, 100)
