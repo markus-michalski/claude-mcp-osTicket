@@ -135,7 +135,7 @@ class OsTicketMCPServer {
     }
 
     // Initialize handlers (metadataService removed - will be re-added for update API)
-    this.handlers = new ToolHandlers(this.ticketService, this.apiClient || undefined);
+    this.handlers = new ToolHandlers(this.ticketService, this.apiClient || undefined, this.config);
 
     // Connect to database
     this.logger.info('Connecting to database...');
@@ -228,17 +228,17 @@ class OsTicketMCPServer {
           },
           {
             name: 'create_ticket',
-            description: 'Create a new osTicket ticket via API. Note: Department and Help Topic cannot be set via API - tickets use default Help Topic. Use manual update or future update API to change department.',
+            description: 'Create a new osTicket ticket via API. If name/email are not provided, defaults from environment variables (OSTICKET_DEFAULT_NAME/EMAIL) are used.',
             inputSchema: {
               type: 'object',
               properties: {
                 name: {
                   type: 'string',
-                  description: 'User name',
+                  description: 'User name (optional - uses OSTICKET_DEFAULT_NAME if not provided)',
                 },
                 email: {
                   type: 'string',
-                  description: 'User email address',
+                  description: 'User email address (optional - uses OSTICKET_DEFAULT_EMAIL if not provided)',
                 },
                 subject: {
                   type: 'string',
@@ -249,7 +249,7 @@ class OsTicketMCPServer {
                   description: 'Ticket message/description',
                 },
               },
-              required: ['name', 'email', 'subject', 'message'],
+              required: ['subject', 'message'],
             },
           },
         ],

@@ -30,6 +30,8 @@ export class Configuration {
   public readonly osTicketApiUrl: string;
   public readonly osTicketApiKey: string;
   public readonly osTicketApiRejectUnauthorized: boolean;
+  public readonly osTicketDefaultName: string;
+  public readonly osTicketDefaultEmail: string;
 
   // Cache Settings
   public readonly cacheTTL: number;
@@ -71,6 +73,8 @@ export class Configuration {
     this.osTicketApiUrl = this.get('OSTICKET_API_URL', 'https://127.0.0.1:8000');
     this.osTicketApiKey = this.get('OSTICKET_API_KEY', '');
     this.osTicketApiRejectUnauthorized = this.get('OSTICKET_API_REJECT_UNAUTHORIZED', 'false') === 'true';
+    this.osTicketDefaultName = this.get('OSTICKET_DEFAULT_NAME', '');
+    this.osTicketDefaultEmail = this.get('OSTICKET_DEFAULT_EMAIL', '');
 
     // Cache Configuration
     this.cacheTTL = parseInt(this.get('CACHE_TTL', '300000'));
@@ -135,6 +139,7 @@ export class Configuration {
     console.log(`  Table Prefix: ${this.osTicketTablePrefix}`);
     console.log(`  API URL: ${this.osTicketApiUrl}`);
     console.log(`  API Key: ${this.osTicketApiKey ? '***' + this.osTicketApiKey.slice(-4) : 'not set'}`);
+    console.log(`  Default User: ${this.osTicketDefaultName ? this.osTicketDefaultName : 'not set'} <${this.osTicketDefaultEmail ? this.osTicketDefaultEmail : 'not set'}>`);
     console.log(`  SSH Pool Size: ${this.sshPoolSize}`);
     console.log(`  DB Connection Limit: ${this.dbConnectionLimit}`);
     console.log(`  Cache TTL: ${this.cacheTTL}ms`);

@@ -1,6 +1,7 @@
 import { TicketService } from '../../core/services/TicketService.js';
 import { TicketFilters, TicketStatus } from '../../core/entities/Ticket.js';
 import { OsTicketApiClient } from '../../infrastructure/http/OsTicketApiClient.js';
+import { Configuration } from '../../config/Configuration.js';
 
 /**
  * MCP Tool Handlers
@@ -12,7 +13,8 @@ import { OsTicketApiClient } from '../../infrastructure/http/OsTicketApiClient.j
 export class ToolHandlers {
   constructor(
     private readonly ticketService: TicketService,
-    private readonly apiClient?: OsTicketApiClient
+    private readonly apiClient?: OsTicketApiClient,
+    private readonly config?: Configuration
   ) {}
 
   /**
@@ -144,8 +146,8 @@ export class ToolHandlers {
    * - Use the future API-Endpoints plugin to update department after creation
    */
   async handleCreateTicket(args: {
-    name: string;
-    email: string;
+    name?: string;
+    email?: string;
     subject: string;
     message: string;
   }): Promise<any> {
@@ -157,18 +159,22 @@ export class ToolHandlers {
         };
       }
 
-      // Validate required fields
-      if (!args.name || args.name.trim().length === 0) {
-        return { error: 'Name parameter is required' };
+      // Use defaults from config if not provided
+      const name = args.name?.trim() || this.config?.osTicketDefaultName || '';
+      const email = args.email?.trim() || this.config?.osTicketDefaultEmail || '';
+
+      // Validate required fields (after applying defaults)
+      if (!name || name.length === 0) {
+        return { error: 'Name parameter is required (provide name or set OSTICKET_DEFAULT_NAME in .env)' };
       }
 
-      if (!args.email || args.email.trim().length === 0) {
-        return { error: 'Email parameter is required' };
+      if (!email || email.length === 0) {
+        return { error: 'Email parameter is required (provide email or set OSTICKET_DEFAULT_EMAIL in .env)' };
       }
 
       // Basic email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(args.email)) {
+      if (!emailRegex.test(email)) {
         return { error: 'Invalid email format' };
       }
 
@@ -182,8 +188,8 @@ export class ToolHandlers {
 
       // Create ticket via API (uses default help topic from osTicket config)
       const ticketNumber = await this.apiClient.createTicket({
-        name: args.name.trim(),
-        email: args.email.trim(),
+        name: name,
+        email: email,
         subject: args.subject.trim(),
         message: args.message.trim(),
         alert: false,

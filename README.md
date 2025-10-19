@@ -158,14 +158,28 @@ Erstellt ein neues osTicket-Ticket über die osTicket API.
 - `OSTICKET_API_URL` und `OSTICKET_API_KEY` in `.env` konfiguriert
 - API-Key in osTicket Admin Panel erstellt (Admin Panel → Manage → API Keys)
 
+**Default-User konfigurieren (optional):**
+```bash
+# In .env:
+OSTICKET_DEFAULT_NAME=MM - Standard
+OSTICKET_DEFAULT_EMAIL=info@markus-michalski.net
+```
+
+Wenn konfiguriert, werden `name` und `email` automatisch aus der Config verwendet, falls nicht explizit übergeben.
+
 ```typescript
+// Mit expliziten User-Daten
 mcp__osticket__create_ticket({
   name: 'Max Mustermann',
   email: 'max@example.com',
   subject: 'Test-Ticket via API',
-  message: 'Dies ist eine Testmeldung',
-  topicId: 1,  // Optional: Help Topic ID
-  departmentId: 2  // Optional: Department ID
+  message: 'Dies ist eine Testmeldung'
+})
+
+// Mit Default-User (OSTICKET_DEFAULT_NAME/EMAIL aus .env)
+mcp__osticket__create_ticket({
+  subject: 'Test-Ticket via API',
+  message: 'Dies ist eine Testmeldung'
 })
 ```
 
@@ -174,14 +188,14 @@ mcp__osticket__create_ticket({
 {
   "success": true,
   "ticketNumber": "363235",
-  "message": "Ticket created successfully with number: 363235"
+  "message": "Ticket created successfully with number: 363235. Note: Department/Topic must be changed manually or via future update API."
 }
 ```
 
 **Error-Handling:**
 - 401: Invalid API Key
 - 403: Access denied
-- 400: Invalid parameters
+- 400: Invalid parameters (oder fehlende Defaults)
 - 500: osTicket API error
 
 ## 🔍 Monitoring & Health
