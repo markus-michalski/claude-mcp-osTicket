@@ -11,6 +11,17 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [1.1.2] - 2025-10-19
+
+### Added
+- Switch to wildcard API endpoint for ticket creation
+
+### Fixed
+- Prevent EPIPE exception loops and implement log rotation
+- Handle MCP close event for graceful shutdown
+
+---
+
 ## [1.1.1] - 2025-10-19
 
 ### Fixed
@@ -77,7 +88,8 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## Versionshistorie
 
-[Unreleased]: https://github.com/markus-michalski/claude-mcp-osTicket/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/markus-michalski/claude-mcp-osTicket/compare/v1.1.2...HEAD
 [1.0.0]: https://github.com/username/claude-mcp-osticket/releases/tag/v1.0.0
 [1.1.0]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v1.1.0
 [1.1.1]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v1.1.1
+[1.1.2]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v1.1.2
