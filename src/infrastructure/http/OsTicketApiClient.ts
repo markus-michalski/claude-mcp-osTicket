@@ -19,14 +19,18 @@ export class OsTicketApiClient {
   /**
    * Create a new ticket via API
    * Uses wildcard endpoint to support API keys with 0.0.0.0 IP address
+   *
+   * Note: departmentId and topicId are NOT sent to the API because:
+   * - osTicket API doesn't support departmentId (throws 400 error)
+   * - topicId determines the department automatically
+   * - Custom API-Endpoints plugin will later provide POST /api/tickets/update/{id}
+   *   to change department after creation
    */
   async createTicket(params: {
     name: string;
     email: string;
     subject: string;
     message: string;
-    topicId?: number;
-    departmentId?: number;
     alert?: boolean;
     autorespond?: boolean;
   }): Promise<string> {
@@ -38,15 +42,9 @@ export class OsTicketApiClient {
       email: params.email,
       subject: params.subject,
       message: params.message,
-      topicId: params.topicId || 1,
       alert: params.alert ?? false,
       autorespond: params.autorespond ?? false,
     };
-
-    // Add departmentId only if provided (API doesn't require it)
-    if (params.departmentId) {
-      (body as any).departmentId = params.departmentId;
-    }
 
     const response = await this.makeRequest('POST', url.toString(), body);
 

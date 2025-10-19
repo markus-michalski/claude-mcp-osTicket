@@ -22,7 +22,8 @@ import { OsTicketApiClient } from './infrastructure/http/OsTicketApiClient.js';
 
 // Core
 import { TicketService } from './core/services/TicketService.js';
-import { MetadataService } from './core/services/MetadataService.js';
+// MetadataService temporarily removed - will be re-added for update API
+// import { MetadataService } from './core/services/MetadataService.js';
 
 // Application
 import { ToolHandlers } from './application/handlers/ToolHandlers.js';
@@ -38,7 +39,7 @@ class OsTicketMCPServer {
   private dbManager: DatabaseConnectionManager | null = null;
   private cacheProvider: InMemoryCacheProvider | null = null;
   private ticketService: TicketService | null = null;
-  private metadataService: MetadataService | null = null;
+  // metadataService removed temporarily - will be re-added for update API
   private apiClient: OsTicketApiClient | null = null;
   private handlers: ToolHandlers | null = null;
   private server: Server;
@@ -118,8 +119,8 @@ class OsTicketMCPServer {
 
     this.ticketService = new TicketService(repository, this.cacheProvider);
 
-    // Initialize metadata service
-    this.metadataService = new MetadataService(repository);
+    // Metadata service temporarily removed - will be re-added for update API
+    // this.metadataService = new MetadataService(repository);
 
     // Initialize API client (optional - only if API key is configured)
     if (this.config.osTicketApiKey) {
@@ -133,8 +134,8 @@ class OsTicketMCPServer {
       this.logger.warn('⚠ API client not initialized (OSTICKET_API_KEY not set)');
     }
 
-    // Initialize handlers
-    this.handlers = new ToolHandlers(this.ticketService, this.metadataService, this.apiClient || undefined);
+    // Initialize handlers (metadataService removed - will be re-added for update API)
+    this.handlers = new ToolHandlers(this.ticketService, this.apiClient || undefined);
 
     // Connect to database
     this.logger.info('Connecting to database...');
@@ -227,7 +228,7 @@ class OsTicketMCPServer {
           },
           {
             name: 'create_ticket',
-            description: 'Create a new osTicket ticket via API. Supports intelligent department/topic lookup by name.',
+            description: 'Create a new osTicket ticket via API. Note: Department and Help Topic cannot be set via API - tickets use default Help Topic. Use manual update or future update API to change department.',
             inputSchema: {
               type: 'object',
               properties: {
@@ -246,22 +247,6 @@ class OsTicketMCPServer {
                 message: {
                   type: 'string',
                   description: 'Ticket message/description',
-                },
-                departmentId: {
-                  type: 'number',
-                  description: 'Department ID (optional, use either this OR departmentName)',
-                },
-                departmentName: {
-                  type: 'string',
-                  description: 'Department name or path (alternative to departmentId). Supports fuzzy matching, e.g., "Sitemap", "OXID Sitemap", or "Projekte / OXID 7 / Sitemap"',
-                },
-                topicId: {
-                  type: 'number',
-                  description: 'Help Topic ID (optional, use either this OR topicName)',
-                },
-                topicName: {
-                  type: 'string',
-                  description: 'Help topic name (alternative to topicId). Supports fuzzy matching and aliases, e.g., "Feature", "Bug", "Support"',
                 },
               },
               required: ['name', 'email', 'subject', 'message'],
