@@ -50,18 +50,22 @@ export class OsTicketApiClient {
 
     const response = await this.makeRequest('POST', url.toString(), body);
 
-    // Debug: Log response type and value
-    console.log('[API] CREATE response type:', typeof response);
-    console.log('[API] CREATE response value:', response);
+    // osTicket wildcard API can return ticket number in different formats:
+    // - String: "123456"
+    // - Number: 123456
+    // - JSON object: { ticketNumber: "123456" } or { number: "123456" }
 
-    // osTicket API returns ticket number as plain text response
-    if (typeof response === 'string') {
-      const ticketNumber = response.trim();
-      console.log('[API] Extracted ticket number:', ticketNumber);
-      return ticketNumber;
+    // Handle number response (wildcard API)
+    if (typeof response === 'number') {
+      return String(response);
     }
 
-    // Fallback: try to extract from JSON response
+    // Handle string response (standard API)
+    if (typeof response === 'string') {
+      return response.trim();
+    }
+
+    // Handle JSON object response
     if (typeof response === 'object' && response !== null) {
       if ('ticketNumber' in response) {
         return String((response as any).ticketNumber);
