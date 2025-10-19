@@ -1,5 +1,5 @@
-import { writeFileSync, appendFileSync, existsSync, mkdirSync } from 'fs';
-import { dirname } from 'path';
+import { writeFileSync, appendFileSync, existsSync, mkdirSync, statSync, renameSync, unlinkSync, readdirSync } from 'fs';
+import { dirname, join } from 'path';
 
 /**
  * Logger for MCP Server
@@ -9,6 +9,8 @@ export class Logger {
   private logFilePath: string | null = null;
   private logLevel: LogLevel;
   private isDebugMode: boolean;
+  private maxLogSizeBytes: number = 10 * 1024 * 1024; // 10MB default
+  private maxRotatedLogs: number = 5; // Keep last 5 rotated logs
 
   constructor(logLevel: LogLevel = 'info', logFilePath?: string) {
     this.logLevel = logLevel;
@@ -20,7 +22,7 @@ export class Logger {
   }
 
   /**
-   * Initialize log file
+   * Initialize log file with rotation
    */
   private initializeLogFile(logFilePath: string): void {
     try {
@@ -33,6 +35,12 @@ export class Logger {
 
       this.logFilePath = logFilePath;
 
+      // Rotate log if it's too large
+      this.rotateLogIfNeeded();
+
+      // Clean up old rotated logs
+      this.cleanupOldRotatedLogs();
+
       // Write initial log header
       const header = `\n${'='.repeat(80)}\nMCP Server Log - ${new Date().toISOString()}\n${'='.repeat(80)}\n`;
       writeFileSync(this.logFilePath, header, { flag: 'a' });
@@ -40,6 +48,72 @@ export class Logger {
       this.info(`Logging initialized: ${this.logFilePath}`);
     } catch (error) {
       this.error(`Failed to initialize log file: ${error}`);
+    }
+  }
+
+  /**
+   * Rotate log file if it exceeds max size
+   */
+  private rotateLogIfNeeded(): void {
+    if (!this.logFilePath || !existsSync(this.logFilePath)) {
+      return;
+    }
+
+    try {
+      const stats = statSync(this.logFilePath);
+
+      // If log file is larger than max size, rotate it
+      if (stats.size > this.maxLogSizeBytes) {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const rotatedPath = `${this.logFilePath}.${timestamp}`;
+
+        // Rename current log to rotated version
+        renameSync(this.logFilePath, rotatedPath);
+      }
+    } catch (error) {
+      // Silently ignore rotation errors
+    }
+  }
+
+  /**
+   * Clean up old rotated log files
+   * Keeps only the most recent N rotated logs
+   */
+  private cleanupOldRotatedLogs(): void {
+    if (!this.logFilePath) {
+      return;
+    }
+
+    try {
+      const logDir = dirname(this.logFilePath);
+      const logFileName = this.logFilePath.split('/').pop();
+
+      if (!logFileName) return;
+
+      // Find all rotated log files
+      const files = readdirSync(logDir);
+      const rotatedLogs = files
+        .filter(f => f.startsWith(logFileName + '.'))
+        .map(f => ({
+          name: f,
+          path: join(logDir, f),
+          mtime: statSync(join(logDir, f)).mtime.getTime()
+        }))
+        .sort((a, b) => b.mtime - a.mtime); // Sort by modification time, newest first
+
+      // Delete old rotated logs (keep only last N)
+      if (rotatedLogs.length > this.maxRotatedLogs) {
+        const logsToDelete = rotatedLogs.slice(this.maxRotatedLogs);
+        logsToDelete.forEach(log => {
+          try {
+            unlinkSync(log.path);
+          } catch (error) {
+            // Silently ignore deletion errors
+          }
+        });
+      }
+    } catch (error) {
+      // Silently ignore cleanup errors
     }
   }
 
@@ -83,14 +157,25 @@ export class Logger {
     const formattedMessage = this.formatMessage(timestamp, level, message, meta);
 
     // Always write to stderr (visible in debug logs)
-    process.stderr.write(formattedMessage + '\n');
+    // Catch EPIPE errors (broken pipe when Claude Code closes connection)
+    try {
+      process.stderr.write(formattedMessage + '\n');
+    } catch (error: any) {
+      // Ignore EPIPE errors to prevent infinite exception loops
+      if (error.code !== 'EPIPE') {
+        // Only re-throw non-EPIPE errors
+        throw error;
+      }
+      // EPIPE means the client disconnected - silently ignore
+    }
 
     // Write to log file if configured
     if (this.logFilePath) {
       try {
         appendFileSync(this.logFilePath, formattedMessage + '\n');
-      } catch (error) {
-        process.stderr.write(`[Logger] Failed to write to log file: ${error}\n`);
+      } catch (error: any) {
+        // Don't log file errors to avoid infinite loops on EPIPE
+        // Silently fail if we can't write to file
       }
     }
   }

@@ -350,8 +350,12 @@ class OsTicketMCPServer {
   private setupSignalHandlers(): void {
     process.on('SIGINT', () => this.shutdown('SIGINT'));
     process.on('SIGTERM', () => this.shutdown('SIGTERM'));
-    process.on('uncaughtException', (error) => {
-      this.logger.error('Uncaught exception:', error);
+    process.on('uncaughtException', (error: any) => {
+      // Don't log EPIPE errors (broken pipe when client disconnects)
+      // Logging would trigger another EPIPE → infinite loop
+      if (error.code !== 'EPIPE') {
+        this.logger.error('Uncaught exception:', error);
+      }
       this.shutdown('uncaughtException');
     });
     process.on('unhandledRejection', (reason) => {
