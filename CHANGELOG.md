@@ -11,6 +11,13 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [1.2.1] - 2025-10-19
+
+### Added
+- add default topic ID support for ticket creation
+
+---
+
 ## [1.2.0] - 2025-10-19
 
 ### Added
@@ -99,9 +106,10 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## Versionshistorie
 
-[Unreleased]: https://github.com/markus-michalski/claude-mcp-osTicket/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/markus-michalski/claude-mcp-osTicket/compare/v1.2.1...HEAD
 [1.0.0]: https://github.com/username/claude-mcp-osticket/releases/tag/v1.0.0
 [1.1.0]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v1.1.0
 [1.1.1]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v1.1.1
 [1.1.2]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v1.1.2
 [1.2.0]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v1.2.0
+[1.2.1]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v1.2.1
