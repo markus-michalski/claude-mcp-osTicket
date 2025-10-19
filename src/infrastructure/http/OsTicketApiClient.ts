@@ -48,9 +48,15 @@ export class OsTicketApiClient {
 
     const response = await this.makeRequest('POST', url.toString(), body);
 
+    // Debug: Log response type and value
+    console.log('[API] CREATE response type:', typeof response);
+    console.log('[API] CREATE response value:', response);
+
     // osTicket API returns ticket number as plain text response
     if (typeof response === 'string') {
-      return response.trim();
+      const ticketNumber = response.trim();
+      console.log('[API] Extracted ticket number:', ticketNumber);
+      return ticketNumber;
     }
 
     // Fallback: try to extract from JSON response
@@ -63,7 +69,7 @@ export class OsTicketApiClient {
       }
     }
 
-    throw new Error('Failed to extract ticket number from API response');
+    throw new Error(`Failed to extract ticket number from API response (type: ${typeof response}, value: ${JSON.stringify(response)})`);
   }
 
   /**
