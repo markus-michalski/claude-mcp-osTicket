@@ -18,6 +18,7 @@ export class OsTicketApiClient {
 
   /**
    * Create a new ticket via API
+   * Uses wildcard endpoint to support API keys with 0.0.0.0 IP address
    */
   async createTicket(params: {
     name: string;
@@ -29,7 +30,8 @@ export class OsTicketApiClient {
     alert?: boolean;
     autorespond?: boolean;
   }): Promise<string> {
-    const url = new URL('/api/http.php/tickets.json', this.apiUrl);
+    // Use wildcard endpoint for API keys with 0.0.0.0 (accepts from any IP)
+    const url = new URL('/api/wildcard/tickets.json', this.apiUrl);
 
     const body = {
       name: params.name,
@@ -152,9 +154,9 @@ export class OsTicketApiClient {
    */
   async healthCheck(): Promise<boolean> {
     try {
-      // osTicket API doesn't have a dedicated health endpoint
-      // We just check if the base URL is reachable
-      const url = new URL('/api/http.php', this.apiUrl);
+      // osTicket wildcard API doesn't have a dedicated health endpoint
+      // We just check if the wildcard endpoint is reachable
+      const url = new URL('/api/wildcard.php', this.apiUrl);
       await this.makeRequest('GET', url.toString());
       return true;
     } catch {
