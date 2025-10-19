@@ -42,6 +42,7 @@ class OsTicketMCPServer {
   private apiClient: OsTicketApiClient | null = null;
   private handlers: ToolHandlers | null = null;
   private server: Server;
+  private isShuttingDown: boolean = false;
 
   constructor() {
     this.config = new Configuration();
@@ -368,6 +369,11 @@ class OsTicketMCPServer {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
 
+    // Listen for close event from MCP client (e.g., when user exits Claude Code)
+    this.server.onclose = async () => {
+      await this.shutdown('close');
+    };
+
     this.logger.info('✓ Server running and ready');
   }
 
@@ -375,6 +381,12 @@ class OsTicketMCPServer {
    * Graceful shutdown
    */
   private async shutdown(signal: string): Promise<void> {
+    // Prevent multiple shutdown calls
+    if (this.isShuttingDown) {
+      return;
+    }
+    this.isShuttingDown = true;
+
     this.logger.warn(`Received ${signal}, shutting down gracefully...`);
 
     try {
