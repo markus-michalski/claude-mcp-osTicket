@@ -228,7 +228,7 @@ class OsTicketMCPServer {
           },
           {
             name: 'create_ticket',
-            description: 'Create a new osTicket ticket via API. If name/email are not provided, defaults from environment variables (OSTICKET_DEFAULT_NAME/EMAIL) are used.',
+            description: 'Create a new osTicket ticket via API. If name/email/topicId are not provided, defaults from environment variables are used.',
             inputSchema: {
               type: 'object',
               properties: {
@@ -247,6 +247,10 @@ class OsTicketMCPServer {
                 message: {
                   type: 'string',
                   description: 'Ticket message/description',
+                },
+                topicId: {
+                  type: 'number',
+                  description: 'Help Topic ID (optional - uses OSTICKET_DEFAULT_TOPIC_ID if not provided)',
                 },
               },
               required: ['subject', 'message'],

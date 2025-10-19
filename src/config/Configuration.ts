@@ -32,6 +32,7 @@ export class Configuration {
   public readonly osTicketApiRejectUnauthorized: boolean;
   public readonly osTicketDefaultName: string;
   public readonly osTicketDefaultEmail: string;
+  public readonly osTicketDefaultTopicId: number;
 
   // Cache Settings
   public readonly cacheTTL: number;
@@ -75,6 +76,7 @@ export class Configuration {
     this.osTicketApiRejectUnauthorized = this.get('OSTICKET_API_REJECT_UNAUTHORIZED', 'false') === 'true';
     this.osTicketDefaultName = this.get('OSTICKET_DEFAULT_NAME', '');
     this.osTicketDefaultEmail = this.get('OSTICKET_DEFAULT_EMAIL', '');
+    this.osTicketDefaultTopicId = parseInt(this.get('OSTICKET_DEFAULT_TOPIC_ID', '0'));
 
     // Cache Configuration
     this.cacheTTL = parseInt(this.get('CACHE_TTL', '300000'));
@@ -140,6 +142,7 @@ export class Configuration {
     console.log(`  API URL: ${this.osTicketApiUrl}`);
     console.log(`  API Key: ${this.osTicketApiKey ? '***' + this.osTicketApiKey.slice(-4) : 'not set'}`);
     console.log(`  Default User: ${this.osTicketDefaultName ? this.osTicketDefaultName : 'not set'} <${this.osTicketDefaultEmail ? this.osTicketDefaultEmail : 'not set'}>`);
+    console.log(`  Default Topic ID: ${this.osTicketDefaultTopicId || 'not set'}`);
     console.log(`  SSH Pool Size: ${this.sshPoolSize}`);
     console.log(`  DB Connection Limit: ${this.dbConnectionLimit}`);
     console.log(`  Cache TTL: ${this.cacheTTL}ms`);

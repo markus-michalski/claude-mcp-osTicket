@@ -140,16 +140,17 @@ export class ToolHandlers {
   /**
    * Handle create_ticket tool call
    *
-   * Note: departmentId and topicId are no longer supported because:
-   * - osTicket API doesn't accept departmentId (throws 400 error)
-   * - topicId determines department automatically
-   * - Use the future API-Endpoints plugin to update department after creation
+   * Note: topicId is supported by the wildcard API
+   * - If topicId is provided, it will be used
+   * - If not provided, uses OSTICKET_DEFAULT_TOPIC_ID from config (if set)
+   * - If no default, uses osTicket's system default help topic
    */
   async handleCreateTicket(args: {
     name?: string;
     email?: string;
     subject: string;
     message: string;
+    topicId?: number;
   }): Promise<any> {
     try {
       // Check if API client is available
@@ -162,6 +163,7 @@ export class ToolHandlers {
       // Use defaults from config if not provided
       const name = args.name?.trim() || this.config?.osTicketDefaultName || '';
       const email = args.email?.trim() || this.config?.osTicketDefaultEmail || '';
+      const topicId = args.topicId || this.config?.osTicketDefaultTopicId || undefined;
 
       // Validate required fields (after applying defaults)
       if (!name || name.length === 0) {
@@ -186,12 +188,13 @@ export class ToolHandlers {
         return { error: 'Message parameter is required' };
       }
 
-      // Create ticket via API (uses default help topic from osTicket config)
+      // Create ticket via API
       const ticketNumber = await this.apiClient.createTicket({
         name: name,
         email: email,
         subject: args.subject.trim(),
         message: args.message.trim(),
+        topicId: topicId,
         alert: false,
         autorespond: false
       });
@@ -199,7 +202,7 @@ export class ToolHandlers {
       return {
         success: true,
         ticketNumber,
-        message: `Ticket created successfully with number: ${ticketNumber}. Note: Department/Topic must be changed manually or via future update API.`
+        message: `Ticket created successfully with number: ${ticketNumber}${topicId ? ` with topic ID ${topicId}` : ''}.`
       };
     } catch (error) {
       return {
