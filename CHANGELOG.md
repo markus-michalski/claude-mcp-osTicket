@@ -11,6 +11,21 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [1.2.2] - 2025-10-22
+
+### Added
+- set markdown as default format for tickets
+- add markdown format support for ticket creation
+
+### Changed
+- Auto-sync from RTY-9618531788
+
+### Fixed
+- update API URL to production domain in example config
+- correct SSL certificate verification logic
+
+---
+
 ## [1.2.1] - 2025-10-19
 
 ### Added
@@ -106,10 +121,11 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## Versionshistorie
 
-[Unreleased]: https://github.com/markus-michalski/claude-mcp-osTicket/compare/v1.2.1...HEAD
+[Unreleased]: https://github.com/markus-michalski/claude-mcp-osTicket/compare/v1.2.2...HEAD
 [1.0.0]: https://github.com/username/claude-mcp-osticket/releases/tag/v1.0.0
 [1.1.0]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v1.1.0
 [1.1.1]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v1.1.1
 [1.1.2]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v1.1.2
 [1.2.0]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v1.2.0
 [1.2.1]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v1.2.1
+[1.2.2]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v1.2.2
