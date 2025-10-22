@@ -163,9 +163,40 @@ Erstellt ein neues osTicket-Ticket über die osTicket API.
 # In .env:
 OSTICKET_DEFAULT_NAME=MM - Standard
 OSTICKET_DEFAULT_EMAIL=info@markus-michalski.net
+OSTICKET_DEFAULT_TOPIC_ID=1  # Optional: Default Help Topic
 ```
 
-Wenn konfiguriert, werden `name` und `email` automatisch aus der Config verwendet, falls nicht explizit übergeben.
+Wenn konfiguriert, werden `name`, `email` und `topicId` automatisch aus der Config verwendet, falls nicht explizit übergeben.
+
+**Markdown-Support:**
+Das Tool unterstützt Markdown-Formatierung für Ticket-Nachrichten:
+```typescript
+// Mit Markdown-Formatierung (empfohlen)
+mcp__osticket__create_ticket({
+  subject: 'Bug Report',
+  message: '# Bug Report\n\n- Issue 1\n- Issue 2\n\n**Priorität:** Hoch',
+  format: 'markdown'
+})
+
+// Auto-Detection (osTicket erkennt Markdown automatisch)
+mcp__osticket__create_ticket({
+  subject: 'Test-Ticket via API',
+  message: '# Überschrift\n\nDies ist **fett** und *kursiv*'
+})
+
+// Plain Text
+mcp__osticket__create_ticket({
+  subject: 'Simple Ticket',
+  message: 'Einfache Nachricht ohne Formatierung',
+  format: 'text'
+})
+```
+
+**Format-Parameter:**
+- `markdown` - Content wird als Markdown geparst
+- `html` - Content wird als HTML behandelt
+- `text` - Content wird als reiner Text behandelt
+- Wenn nicht angegeben: osTicket erkennt Format automatisch basierend auf dem Content
 
 ```typescript
 // Mit expliziten User-Daten
@@ -173,7 +204,8 @@ mcp__osticket__create_ticket({
   name: 'Max Mustermann',
   email: 'max@example.com',
   subject: 'Test-Ticket via API',
-  message: 'Dies ist eine Testmeldung'
+  message: '# Test\n\nDies ist eine **Testmeldung**',
+  format: 'markdown'
 })
 
 // Mit Default-User (OSTICKET_DEFAULT_NAME/EMAIL aus .env)

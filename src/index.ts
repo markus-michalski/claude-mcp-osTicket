@@ -228,7 +228,7 @@ class OsTicketMCPServer {
           },
           {
             name: 'create_ticket',
-            description: 'Create a new osTicket ticket via API. If name/email/topicId are not provided, defaults from environment variables are used.',
+            description: 'Create a new osTicket ticket via API. If name/email/topicId are not provided, defaults from environment variables are used. Supports Markdown formatting.',
             inputSchema: {
               type: 'object',
               properties: {
@@ -246,7 +246,12 @@ class OsTicketMCPServer {
                 },
                 message: {
                   type: 'string',
-                  description: 'Ticket message/description',
+                  description: 'Ticket message/description (supports Markdown)',
+                },
+                format: {
+                  type: 'string',
+                  description: 'Message format (optional): "markdown", "html", or "text". If not provided, osTicket will auto-detect based on content.',
+                  enum: ['markdown', 'html', 'text'],
                 },
                 topicId: {
                   type: 'number',

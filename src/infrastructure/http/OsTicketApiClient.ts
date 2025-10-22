@@ -23,12 +23,19 @@ export class OsTicketApiClient {
    * Note: topicId is now supported by the wildcard API
    * - topicId determines the department and help topic
    * - If not provided, uses osTicket's default help topic
+   *
+   * Format parameter:
+   * - "markdown" - Content will be parsed as Markdown
+   * - "html" - Content will be treated as HTML
+   * - "text" - Content will be treated as plain text
+   * - If not provided, osTicket will auto-detect based on content
    */
   async createTicket(params: {
     name: string;
     email: string;
     subject: string;
     message: string;
+    format?: 'markdown' | 'html' | 'text';
     topicId?: number;
     alert?: boolean;
     autorespond?: boolean;
@@ -44,6 +51,11 @@ export class OsTicketApiClient {
       alert: params.alert ?? false,
       autorespond: params.autorespond ?? false,
     };
+
+    // Add format if provided (for Markdown support)
+    if (params.format) {
+      body.format = params.format;
+    }
 
     // Add topicId if provided
     if (params.topicId) {

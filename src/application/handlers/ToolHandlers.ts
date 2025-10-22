@@ -144,12 +144,19 @@ export class ToolHandlers {
    * - If topicId is provided, it will be used
    * - If not provided, uses OSTICKET_DEFAULT_TOPIC_ID from config (if set)
    * - If no default, uses osTicket's system default help topic
+   *
+   * Format parameter:
+   * - "markdown" - Content will be parsed as Markdown
+   * - "html" - Content will be treated as HTML
+   * - "text" - Content will be treated as plain text
+   * - If not provided, osTicket will auto-detect based on content
    */
   async handleCreateTicket(args: {
     name?: string;
     email?: string;
     subject: string;
     message: string;
+    format?: 'markdown' | 'html' | 'text';
     topicId?: number;
   }): Promise<any> {
     try {
@@ -194,6 +201,7 @@ export class ToolHandlers {
         email: email,
         subject: args.subject.trim(),
         message: args.message.trim(),
+        format: args.format,
         topicId: topicId,
         alert: false,
         autorespond: false
