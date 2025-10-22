@@ -127,7 +127,7 @@ class OsTicketMCPServer {
       this.apiClient = new OsTicketApiClient(
         this.config.osTicketApiUrl,
         this.config.osTicketApiKey,
-        !this.config.osTicketApiRejectUnauthorized
+        this.config.osTicketApiRejectUnauthorized
       );
       this.logger.info('✓ API client initialized');
     } else {
