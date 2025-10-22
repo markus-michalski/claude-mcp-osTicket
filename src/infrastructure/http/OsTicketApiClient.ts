@@ -25,10 +25,9 @@ export class OsTicketApiClient {
    * - If not provided, uses osTicket's default help topic
    *
    * Format parameter:
-   * - "markdown" - Content will be parsed as Markdown
+   * - "markdown" - Content will be parsed as Markdown (DEFAULT)
    * - "html" - Content will be treated as HTML
    * - "text" - Content will be treated as plain text
-   * - If not provided, osTicket will auto-detect based on content
    */
   async createTicket(params: {
     name: string;

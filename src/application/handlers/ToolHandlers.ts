@@ -146,10 +146,9 @@ export class ToolHandlers {
    * - If no default, uses osTicket's system default help topic
    *
    * Format parameter:
-   * - "markdown" - Content will be parsed as Markdown
+   * - "markdown" - Content will be parsed as Markdown (DEFAULT)
    * - "html" - Content will be treated as HTML
    * - "text" - Content will be treated as plain text
-   * - If not provided, osTicket will auto-detect based on content
    */
   async handleCreateTicket(args: {
     name?: string;
@@ -196,12 +195,13 @@ export class ToolHandlers {
       }
 
       // Create ticket via API
+      // Default to 'markdown' format if not specified
       const ticketNumber = await this.apiClient.createTicket({
         name: name,
         email: email,
         subject: args.subject.trim(),
         message: args.message.trim(),
-        format: args.format,
+        format: args.format || 'markdown',
         topicId: topicId,
         alert: false,
         autorespond: false

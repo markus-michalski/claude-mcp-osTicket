@@ -169,22 +169,22 @@ OSTICKET_DEFAULT_TOPIC_ID=1  # Optional: Default Help Topic
 Wenn konfiguriert, werden `name`, `email` und `topicId` automatisch aus der Config verwendet, falls nicht explizit übergeben.
 
 **Markdown-Support:**
-Das Tool unterstützt Markdown-Formatierung für Ticket-Nachrichten:
+Das Tool verwendet standardmäßig **Markdown-Formatierung** für alle Ticket-Nachrichten:
 ```typescript
-// Mit Markdown-Formatierung (empfohlen)
+// Markdown ist der Standard (format-Parameter kann weggelassen werden)
 mcp__osticket__create_ticket({
   subject: 'Bug Report',
-  message: '# Bug Report\n\n- Issue 1\n- Issue 2\n\n**Priorität:** Hoch',
+  message: '# Bug Report\n\n- Issue 1\n- Issue 2\n\n**Priorität:** Hoch'
+})
+
+// Explizit Markdown angeben (optional)
+mcp__osticket__create_ticket({
+  subject: 'Test-Ticket via API',
+  message: '# Überschrift\n\nDies ist **fett** und *kursiv*',
   format: 'markdown'
 })
 
-// Auto-Detection (osTicket erkennt Markdown automatisch)
-mcp__osticket__create_ticket({
-  subject: 'Test-Ticket via API',
-  message: '# Überschrift\n\nDies ist **fett** und *kursiv*'
-})
-
-// Plain Text
+// Plain Text (wenn gewünscht)
 mcp__osticket__create_ticket({
   subject: 'Simple Ticket',
   message: 'Einfache Nachricht ohne Formatierung',
@@ -193,10 +193,9 @@ mcp__osticket__create_ticket({
 ```
 
 **Format-Parameter:**
-- `markdown` - Content wird als Markdown geparst
+- `markdown` - Content wird als Markdown geparst **(Standard)**
 - `html` - Content wird als HTML behandelt
 - `text` - Content wird als reiner Text behandelt
-- Wenn nicht angegeben: osTicket erkennt Format automatisch basierend auf dem Content
 
 ```typescript
 // Mit expliziten User-Daten

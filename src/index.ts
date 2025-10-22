@@ -250,7 +250,7 @@ class OsTicketMCPServer {
                 },
                 format: {
                   type: 'string',
-                  description: 'Message format (optional): "markdown", "html", or "text". If not provided, osTicket will auto-detect based on content.',
+                  description: 'Message format (optional): "markdown" (default), "html", or "text".',
                   enum: ['markdown', 'html', 'text'],
                 },
                 topicId: {
