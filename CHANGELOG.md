@@ -11,6 +11,20 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [3.0.1] - 2025-10-24
+
+### Added
+- Add noteFormat parameter to update_ticket tool
+
+### Changed
+- Remove priorityId and add note/noteTitle to update_ticket
+
+### Fixed
+- Handle API response arrays correctly in list/search tools
+- Update Configuration for API-only architecture and health check endpoint
+
+---
+
 ## [3.0.0] - 2025-10-24
 
 ### Changed
@@ -168,7 +182,7 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## Versionshistorie
 
-[Unreleased]: https://github.com/markus-michalski/claude-mcp-osTicket/compare/v3.0.0...HEAD
+[Unreleased]: https://github.com/markus-michalski/claude-mcp-osTicket/compare/v3.0.1...HEAD
 [1.0.0]: https://github.com/username/claude-mcp-osticket/releases/tag/v1.0.0
 [1.1.0]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v1.1.0
 [1.1.1]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v1.1.1
@@ -178,3 +192,4 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 [1.2.2]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v1.2.2
 [2.0.0]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v2.0.0
 [3.0.0]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v3.0.0
+[3.0.1]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v3.0.1
