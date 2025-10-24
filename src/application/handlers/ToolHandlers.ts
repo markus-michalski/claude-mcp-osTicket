@@ -54,6 +54,7 @@ export class ToolHandlers {
   }): Promise<any> {
     try {
       // Search tickets via API (without query = list all)
+      // API returns array directly: [{...}, {...}]
       const result = await this.apiClient.searchTickets({
         status: args.status,
         departmentId: args.departmentId,
@@ -61,9 +62,12 @@ export class ToolHandlers {
         offset: args.offset || 0
       });
 
+      // result is already the array
+      const tickets = Array.isArray(result) ? result : [];
+
       return {
-        tickets: result.tickets || [],
-        total: result.total || 0
+        tickets: tickets,
+        total: tickets.length
       };
     } catch (error) {
       return {
@@ -88,14 +92,18 @@ export class ToolHandlers {
       }
 
       // Search tickets via API
+      // API returns array directly: [{...}, {...}]
       const result = await this.apiClient.searchTickets({
         query: args.query,
         limit: args.limit || 20
       });
 
+      // result is already the array
+      const tickets = Array.isArray(result) ? result : [];
+
       return {
-        tickets: result.tickets || [],
-        total: result.total || 0,
+        tickets: tickets,
+        total: tickets.length,
         query: args.query
       };
     } catch (error) {
