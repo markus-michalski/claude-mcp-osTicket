@@ -13,17 +13,8 @@ import { join } from 'path';
 import { Configuration } from './config/Configuration.js';
 
 // Infrastructure
-import { SSHTunnelPool } from './infrastructure/ssh/SSHTunnelPool.js';
-import { DatabaseConnectionManager } from './infrastructure/database/DatabaseConnectionManager.js';
-import { InMemoryCacheProvider } from './infrastructure/cache/InMemoryCacheProvider.js';
-import { MySQLTicketRepository } from './infrastructure/database/MySQLTicketRepository.js';
 import { Logger } from './infrastructure/logging/Logger.js';
 import { OsTicketApiClient } from './infrastructure/http/OsTicketApiClient.js';
-
-// Core
-import { TicketService } from './core/services/TicketService.js';
-// MetadataService temporarily removed - will be re-added for update API
-// import { MetadataService } from './core/services/MetadataService.js';
 
 // Application
 import { ToolHandlers } from './application/handlers/ToolHandlers.js';
@@ -31,15 +22,12 @@ import { ToolHandlers } from './application/handlers/ToolHandlers.js';
 /**
  * osTicket MCP Server
  * Main entry point
+ *
+ * Uses osTicket REST API exclusively (no database access)
  */
 class OsTicketMCPServer {
   private config: Configuration;
   private logger: Logger;
-  private tunnelPool: SSHTunnelPool | null = null;
-  private dbManager: DatabaseConnectionManager | null = null;
-  private cacheProvider: InMemoryCacheProvider | null = null;
-  private ticketService: TicketService | null = null;
-  // metadataService removed temporarily - will be re-added for update API
   private apiClient: OsTicketApiClient | null = null;
   private handlers: ToolHandlers | null = null;
   private server: Server;
@@ -58,7 +46,7 @@ class OsTicketMCPServer {
     this.server = new Server(
       {
         name: 'osticket-mcp-server',
-        version: '1.0.0',
+        version: '2.0.0', // Bumped to 2.0.0 - API-only, no DB access
       },
       {
         capabilities: {
@@ -75,77 +63,28 @@ class OsTicketMCPServer {
    * Initialize all components
    */
   async initialize(): Promise<void> {
-    this.logger.info('Starting osTicket MCP Server...');
+    this.logger.info('Starting osTicket MCP Server (API-only mode)...');
     this.config.logSummary();
 
-    // Initialize infrastructure
-    this.tunnelPool = new SSHTunnelPool(
-      {
-        host: this.config.sshHost,
-        port: this.config.sshPort,
-        username: this.config.sshUser,
-        privateKeyPath: this.config.sshKeyPath,
-      },
-      {
-        maxConnections: this.config.sshPoolSize,
-        idleTimeout: this.config.sshIdleTimeout,
-        healthCheckInterval: 60000, // 1 minute
-      }
-    );
-
-    this.dbManager = new DatabaseConnectionManager(
-      this.tunnelPool,
-      {
-        host: this.config.dbHost,
-        port: this.config.dbPort,
-        database: this.config.dbName,
-        user: this.config.dbUser,
-        password: this.config.dbPass,
-        connectionLimit: this.config.dbConnectionLimit,
-        queueLimit: this.config.dbQueueLimit,
-      }
-    );
-
-    this.cacheProvider = new InMemoryCacheProvider(
-      this.config.cacheMaxSize,
-      this.config.cacheTTL
-    );
-
-    // Initialize core services
-    const repository = new MySQLTicketRepository(
-      this.dbManager,
-      this.config.osTicketTablePrefix
-    );
-
-    this.ticketService = new TicketService(repository, this.cacheProvider);
-
-    // Metadata service temporarily removed - will be re-added for update API
-    // this.metadataService = new MetadataService(repository);
-
-    // Initialize API client (optional - only if API key is configured)
-    if (this.config.osTicketApiKey) {
-      this.apiClient = new OsTicketApiClient(
-        this.config.osTicketApiUrl,
-        this.config.osTicketApiKey,
-        this.config.osTicketApiRejectUnauthorized
-      );
-      this.logger.info('✓ API client initialized');
-    } else {
-      this.logger.warn('⚠ API client not initialized (OSTICKET_API_KEY not set)');
+    // Initialize API client (required)
+    if (!this.config.osTicketApiKey || !this.config.osTicketApiUrl) {
+      throw new Error('OSTICKET_API_URL and OSTICKET_API_KEY are required in .env');
     }
 
-    // Initialize handlers (metadataService removed - will be re-added for update API)
-    this.handlers = new ToolHandlers(this.ticketService, this.apiClient || undefined, this.config);
+    this.apiClient = new OsTicketApiClient(
+      this.config.osTicketApiUrl,
+      this.config.osTicketApiKey,
+      this.config.osTicketApiRejectUnauthorized
+    );
+    this.logger.info('✓ API client initialized');
 
-    // Connect to database
-    this.logger.info('Connecting to database...');
-    await this.dbManager.connect();
-    this.logger.info('✓ Database connected');
+    // Initialize handlers
+    this.handlers = new ToolHandlers(this.apiClient, this.config);
 
     // Health check
-    const healthy = await this.ticketService.healthCheck();
+    const healthy = await this.apiClient.healthCheck();
     if (!healthy) {
-      throw new Error('Health check failed - database not accessible');
+      throw new Error('Health check failed - API not accessible');
     }
     this.logger.info('✓ Health check passed');
   }
@@ -261,6 +200,62 @@ class OsTicketMCPServer {
               required: ['subject', 'message'],
             },
           },
+          {
+            name: 'update_ticket',
+            description: 'Update an existing osTicket ticket (department, status, priority, assignee, etc.)',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                number: {
+                  type: 'string',
+                  description: 'Ticket number',
+                },
+                departmentId: {
+                  type: ['string', 'number'],
+                  description: 'Department ID or name',
+                },
+                statusId: {
+                  type: ['string', 'number'],
+                  description: 'Status ID or name (Open, Closed, etc.)',
+                },
+                priorityId: {
+                  type: ['string', 'number'],
+                  description: 'Priority ID or name',
+                },
+                topicId: {
+                  type: ['string', 'number'],
+                  description: 'Help Topic ID or name',
+                },
+                staffId: {
+                  type: ['string', 'number'],
+                  description: 'Staff ID or username (to assign ticket)',
+                },
+                slaId: {
+                  type: ['string', 'number'],
+                  description: 'SLA Plan ID or name',
+                },
+                parentTicketNumber: {
+                  type: 'string',
+                  description: 'Parent ticket number (to make this a subticket)',
+                },
+              },
+              required: ['number'],
+            },
+          },
+          {
+            name: 'delete_ticket',
+            description: 'Delete an osTicket ticket permanently',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                number: {
+                  type: 'string',
+                  description: 'Ticket number',
+                },
+              },
+              required: ['number'],
+            },
+          },
         ],
       };
     });
@@ -305,6 +300,14 @@ class OsTicketMCPServer {
             result = await this.handlers.handleCreateTicket(args as any);
             break;
 
+          case 'update_ticket':
+            result = await this.handlers.handleUpdateTicket(args as any);
+            break;
+
+          case 'delete_ticket':
+            result = await this.handlers.handleDeleteTicket(args as any);
+            break;
+
           default:
             result = { error: `Unknown tool: ${name}` };
         }
@@ -346,7 +349,6 @@ class OsTicketMCPServer {
     process.on('SIGTERM', () => this.shutdown('SIGTERM'));
     process.on('uncaughtException', (error: any) => {
       // Don't log EPIPE errors (broken pipe when client disconnects)
-      // Logging would trigger another EPIPE → infinite loop
       if (error.code !== 'EPIPE') {
         this.logger.error('Uncaught exception:', error);
       }
@@ -367,12 +369,12 @@ class OsTicketMCPServer {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
 
-    // Listen for close event from MCP client (e.g., when user exits Claude Code)
+    // Listen for close event from MCP client
     this.server.onclose = async () => {
       await this.shutdown('close');
     };
 
-    this.logger.info('✓ Server running and ready');
+    this.logger.info('✓ Server running and ready (API-only mode)');
   }
 
   /**
@@ -388,18 +390,6 @@ class OsTicketMCPServer {
     this.logger.warn(`Received ${signal}, shutting down gracefully...`);
 
     try {
-      if (this.cacheProvider) {
-        this.cacheProvider.shutdown();
-      }
-
-      if (this.dbManager) {
-        await this.dbManager.disconnect();
-      }
-
-      if (this.tunnelPool) {
-        await this.tunnelPool.shutdown();
-      }
-
       this.logger.info('✓ Shutdown complete');
       process.exit(0);
     } catch (error) {

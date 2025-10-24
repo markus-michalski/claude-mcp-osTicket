@@ -92,6 +92,73 @@ export class OsTicketApiClient {
   }
 
   /**
+   * Get ticket details by number
+   * GET /api/tickets-get.php/:number.json
+   */
+  async getTicket(number: string): Promise<any> {
+    const url = new URL(`/api/tickets-get.php/${number}.json`, this.apiUrl);
+    return await this.makeRequest('GET', url.toString());
+  }
+
+  /**
+   * Search tickets
+   * GET /api/tickets-search.php
+   */
+  async searchTickets(params: {
+    query?: string;
+    status?: string;
+    departmentId?: string | number;
+    limit?: number;
+    offset?: number;
+  }): Promise<any> {
+    const url = new URL('/api/tickets-search.php', this.apiUrl);
+
+    // Add query parameters
+    if (params.query) url.searchParams.append('query', params.query);
+    if (params.status) url.searchParams.append('status', params.status);
+    if (params.departmentId) url.searchParams.append('departmentId', String(params.departmentId));
+    if (params.limit) url.searchParams.append('limit', String(params.limit));
+    if (params.offset) url.searchParams.append('offset', String(params.offset));
+
+    return await this.makeRequest('GET', url.toString());
+  }
+
+  /**
+   * Get ticket statistics
+   * GET /api/tickets-stats.php
+   */
+  async getTicketStats(): Promise<any> {
+    const url = new URL('/api/tickets-stats.php', this.apiUrl);
+    return await this.makeRequest('GET', url.toString());
+  }
+
+  /**
+   * Update ticket
+   * PATCH /api/tickets-update.php/:number.json
+   */
+  async updateTicket(number: string, updates: {
+    departmentId?: string | number;
+    statusId?: string | number;
+    priorityId?: string | number;
+    topicId?: string | number;
+    staffId?: string | number;
+    slaId?: string | number;
+    parentTicketNumber?: string;
+  }): Promise<any> {
+    const url = new URL(`/api/tickets-update.php/${number}.json`, this.apiUrl);
+    return await this.makeRequest('PATCH', url.toString(), updates);
+  }
+
+  /**
+   * Delete ticket
+   * DELETE /api/tickets-delete.php/:number.json
+   */
+  async deleteTicket(number: string): Promise<any> {
+    const url = new URL(`/api/tickets-delete.php/${number}.json`, this.apiUrl);
+    return await this.makeRequest('DELETE', url.toString());
+  }
+
+  /**
    * Make HTTP request to osTicket API
    */
   private async makeRequest(

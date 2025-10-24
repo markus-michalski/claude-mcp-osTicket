@@ -11,10 +11,43 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
-## [2.0.0] - 2025-10-23
+## [2.0.0] - 2025-10-24
+
+### Breaking Changes
+- ❌ Removed SSH tunnel support - MCP Server now uses REST API exclusively
+- ❌ Removed direct database access - all data access via osTicket API
+- ❌ Removed connection pooling - no longer needed without DB connections
+- ❌ Removed caching layer - API handles caching internally
+- ❌ Removed SSH2 dependency - no longer required
+- ❌ Removed MySQL2 dependency - no longer required
+
+### Added
+- ✅ Pure REST API integration via osTicket API Endpoints Plugin
+- ✅ Added `update_ticket` MCP tool - update tickets (department, status, priority, assignee, etc.)
+- ✅ Added `delete_ticket` MCP tool - permanently delete tickets
+- ✅ Simplified architecture - API-only approach
 
 ### Changed
-- update dependencies to latest versions
+- Complete rewrite of ToolHandlers to use API exclusively
+- Simplified index.ts - removed DB/SSH/Cache infrastructure
+- Updated OsTicketApiClient with new endpoints (get, search, stats, update, delete)
+- Updated README for API-only architecture
+- Cleaned up .env.example - removed SSH/DB configuration
+- Version bumped to 2.0.0 to indicate major architectural change
+
+### Removed
+- src/core/ - entities, repositories, services (all DB-based)
+- src/infrastructure/database/ - DatabaseConnectionManager, MySQLTicketRepository
+- src/infrastructure/ssh/ - SSHTunnelConnection, SSHTunnelPool
+- src/infrastructure/cache/ - InMemoryCacheProvider
+- LIVESERVER_SETUP.md - SSH setup no longer needed
+- MCP_OSTICKET_SETUP_Phase1.md - old architecture documentation
+
+### Migration from v1.x
+1. Update `.env` - remove SSH/DB variables, keep only API variables
+2. Ensure osTicket has API Endpoints Plugin v1.0.0+ installed
+3. Create API Key with required permissions in osTicket Admin Panel
+4. Run `npm install && npm run build`
 
 ---
 

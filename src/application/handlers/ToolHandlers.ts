@@ -1,47 +1,39 @@
-import { TicketService } from '../../core/services/TicketService.js';
-import { TicketFilters, TicketStatus } from '../../core/entities/Ticket.js';
 import { OsTicketApiClient } from '../../infrastructure/http/OsTicketApiClient.js';
 import { Configuration } from '../../config/Configuration.js';
 
 /**
  * MCP Tool Handlers
- * Translates MCP tool calls to service calls
+ * Translates MCP tool calls to API calls
  *
- * Note: MetadataService was removed as departmentId/topicId are no longer
- * supported in create_ticket. Will be re-added when update API is implemented.
+ * All handlers now use the REST API exclusively (no direct database access)
  */
 export class ToolHandlers {
   constructor(
-    private readonly ticketService: TicketService,
-    private readonly apiClient?: OsTicketApiClient,
+    private readonly apiClient: OsTicketApiClient,
     private readonly config?: Configuration
   ) {}
 
   /**
    * Handle get_ticket tool call
+   * Uses GET /api/tickets-get.php/:number.json
    */
   async handleGetTicket(args: { id?: number; number?: string }): Promise<any> {
     try {
-      let ticket;
-
-      if (args.id) {
-        ticket = await this.ticketService.getTicket(args.id);
-      } else if (args.number) {
-        ticket = await this.ticketService.getTicketByNumber(args.number);
-      } else {
+      // Validate input
+      if (!args.number && !args.id) {
         return {
           error: 'Either id or number parameter is required'
         };
       }
 
-      if (!ticket) {
-        return {
-          error: 'Ticket not found'
-        };
-      }
+      // Use number if provided, otherwise use id as number
+      const ticketNumber = args.number || String(args.id);
+
+      // Get ticket via API
+      const ticket = await this.apiClient.getTicket(ticketNumber);
 
       return {
-        ticket: this.formatTicket(ticket)
+        ticket
       };
     } catch (error) {
       return {
@@ -52,6 +44,7 @@ export class ToolHandlers {
 
   /**
    * Handle list_tickets tool call
+   * Uses GET /api/tickets-search.php
    */
   async handleListTickets(args: {
     status?: string;
@@ -60,18 +53,17 @@ export class ToolHandlers {
     offset?: number;
   }): Promise<any> {
     try {
-      const filters: TicketFilters = {
-        status: args.status ? this.parseStatus(args.status) : undefined,
+      // Search tickets via API (without query = list all)
+      const result = await this.apiClient.searchTickets({
+        status: args.status,
         departmentId: args.departmentId,
         limit: args.limit || 20,
         offset: args.offset || 0
-      };
-
-      const tickets = await this.ticketService.listTickets(filters);
+      });
 
       return {
-        tickets: tickets.map(t => this.formatTicketListItem(t)),
-        total: tickets.length
+        tickets: result.tickets || [],
+        total: result.total || 0
       };
     } catch (error) {
       return {
@@ -82,6 +74,7 @@ export class ToolHandlers {
 
   /**
    * Handle search_tickets tool call
+   * Uses GET /api/tickets-search.php?query=...
    */
   async handleSearchTickets(args: {
     query: string;
@@ -94,14 +87,15 @@ export class ToolHandlers {
         };
       }
 
-      const tickets = await this.ticketService.searchTickets(
-        args.query,
-        args.limit || 20
-      );
+      // Search tickets via API
+      const result = await this.apiClient.searchTickets({
+        query: args.query,
+        limit: args.limit || 20
+      });
 
       return {
-        tickets: tickets.map(t => this.formatTicketListItem(t)),
-        total: tickets.length,
+        tickets: result.tickets || [],
+        total: result.total || 0,
         query: args.query
       };
     } catch (error) {
@@ -113,22 +107,14 @@ export class ToolHandlers {
 
   /**
    * Handle get_ticket_stats tool call
+   * Uses GET /api/tickets-stats.php
    */
   async handleGetStats(): Promise<any> {
     try {
-      const stats = await this.ticketService.getStatistics();
+      const stats = await this.apiClient.getTicketStats();
 
       return {
-        statistics: {
-          total: stats.total,
-          open: stats.open,
-          closed: stats.closed,
-          overdue: stats.overdue,
-          unanswered: stats.unanswered,
-          last7Days: stats.last7Days,
-          avgFirstResponseHours: Math.round(stats.avgFirstResponseHours * 10) / 10,
-          byDepartment: stats.byDepartment
-        }
+        statistics: stats
       };
     } catch (error) {
       return {
@@ -139,11 +125,7 @@ export class ToolHandlers {
 
   /**
    * Handle create_ticket tool call
-   *
-   * Note: topicId is supported by the wildcard API
-   * - If topicId is provided, it will be used
-   * - If not provided, uses OSTICKET_DEFAULT_TOPIC_ID from config (if set)
-   * - If no default, uses osTicket's system default help topic
+   * POST /api/wildcard/tickets.json
    *
    * Format parameter:
    * - "markdown" - Content will be parsed as Markdown (DEFAULT)
@@ -157,15 +139,9 @@ export class ToolHandlers {
     message: string;
     format?: 'markdown' | 'html' | 'text';
     topicId?: number;
+    departmentId?: string | number;
   }): Promise<any> {
     try {
-      // Check if API client is available
-      if (!this.apiClient) {
-        return {
-          error: 'API client not configured. Set OSTICKET_API_URL and OSTICKET_API_KEY in .env'
-        };
-      }
-
       // Use defaults from config if not provided
       const name = args.name?.trim() || this.config?.osTicketDefaultName || '';
       const email = args.email?.trim() || this.config?.osTicketDefaultEmail || '';
@@ -195,7 +171,6 @@ export class ToolHandlers {
       }
 
       // Create ticket via API
-      // Default to 'markdown' format if not specified
       const ticketNumber = await this.apiClient.createTicket({
         name: name,
         email: email,
@@ -220,67 +195,75 @@ export class ToolHandlers {
   }
 
   /**
-   * Format ticket for JSON output
+   * Handle update_ticket tool call
+   * PATCH /api/tickets-update.php/:number.json
    */
-  private formatTicket(ticket: any): any {
-    return {
-      id: ticket.id,
-      number: ticket.number,
-      subject: ticket.subject,
-      status: ticket.status,
-      priority: ticket.priority,
-      department: ticket.department,
-      created: ticket.created.toISOString(),
-      updated: ticket.updated.toISOString(),
-      dueDate: ticket.dueDate?.toISOString(),
-      isOverdue: ticket.isOverdue,
-      isAnswered: ticket.isAnswered,
-      isClosed: ticket.isClosed,
-      user: ticket.user,
-      assignee: ticket.assignee,
-      messages: ticket.messages.map((msg: any) => ({
-        id: msg.id,
-        created: msg.created.toISOString(),
-        author: msg.author,
-        type: msg.type,
-        title: msg.title,
-        body: msg.body,
-        isStaffReply: msg.isStaffReply
-      })),
-      replyCount: ticket.replyCount,
-      lastResponseAt: ticket.lastResponseAt?.toISOString()
-    };
+  async handleUpdateTicket(args: {
+    number: string;
+    departmentId?: string | number;
+    statusId?: string | number;
+    priorityId?: string | number;
+    topicId?: string | number;
+    staffId?: string | number;
+    slaId?: string | number;
+    parentTicketNumber?: string;
+  }): Promise<any> {
+    try {
+      if (!args.number || args.number.trim().length === 0) {
+        return { error: 'Ticket number is required' };
+      }
+
+      // Build updates object (only include provided fields)
+      const updates: any = {};
+      if (args.departmentId !== undefined) updates.departmentId = args.departmentId;
+      if (args.statusId !== undefined) updates.statusId = args.statusId;
+      if (args.priorityId !== undefined) updates.priorityId = args.priorityId;
+      if (args.topicId !== undefined) updates.topicId = args.topicId;
+      if (args.staffId !== undefined) updates.staffId = args.staffId;
+      if (args.slaId !== undefined) updates.slaId = args.slaId;
+      if (args.parentTicketNumber !== undefined) updates.parentTicketNumber = args.parentTicketNumber;
+
+      // Check if at least one field is being updated
+      if (Object.keys(updates).length === 0) {
+        return { error: 'At least one field must be provided for update' };
+      }
+
+      // Update ticket via API
+      const result = await this.apiClient.updateTicket(args.number, updates);
+
+      return {
+        success: true,
+        ticket: result,
+        message: `Ticket ${args.number} updated successfully`
+      };
+    } catch (error) {
+      return {
+        error: `Failed to update ticket: ${error instanceof Error ? error.message : String(error)}`
+      };
+    }
   }
 
   /**
-   * Format ticket list item for JSON output
+   * Handle delete_ticket tool call
+   * DELETE /api/tickets-delete.php/:number.json
    */
-  private formatTicketListItem(item: any): any {
-    return {
-      id: item.id,
-      number: item.number,
-      subject: item.subject,
-      status: item.status,
-      created: item.created.toISOString(),
-      updated: item.updated.toISOString(),
-      isOverdue: item.isOverdue,
-      userName: item.userName,
-      departmentName: item.departmentName,
-      replyCount: item.replyCount,
-      lastResponseAt: item.lastResponseAt?.toISOString()
-    };
-  }
+  async handleDeleteTicket(args: { number: string }): Promise<any> {
+    try {
+      if (!args.number || args.number.trim().length === 0) {
+        return { error: 'Ticket number is required' };
+      }
 
-  /**
-   * Parse status string to enum
-   */
-  private parseStatus(status: string): TicketStatus {
-    switch (status.toLowerCase()) {
-      case 'open': return TicketStatus.OPEN;
-      case 'closed': return TicketStatus.CLOSED;
-      case 'resolved': return TicketStatus.RESOLVED;
-      case 'archived': return TicketStatus.ARCHIVED;
-      default: return TicketStatus.OPEN;
+      // Delete ticket via API
+      await this.apiClient.deleteTicket(args.number);
+
+      return {
+        success: true,
+        message: `Ticket ${args.number} deleted successfully`
+      };
+    } catch (error) {
+      return {
+        error: `Failed to delete ticket: ${error instanceof Error ? error.message : String(error)}`
+      };
     }
   }
 }
