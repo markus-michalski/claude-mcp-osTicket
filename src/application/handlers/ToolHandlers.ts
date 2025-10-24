@@ -216,6 +216,7 @@ export class ToolHandlers {
     parentTicketNumber?: string;
     note?: string;
     noteTitle?: string;
+    noteFormat?: string;
   }): Promise<any> {
     try {
       if (!args.number || args.number.trim().length === 0) {
@@ -232,6 +233,7 @@ export class ToolHandlers {
       if (args.parentTicketNumber !== undefined) updates.parentTicketNumber = args.parentTicketNumber;
       if (args.note !== undefined) updates.note = args.note;
       if (args.noteTitle !== undefined) updates.noteTitle = args.noteTitle;
+      if (args.noteFormat !== undefined) updates.noteFormat = args.noteFormat;
 
       // Check if at least one field is being updated
       if (Object.keys(updates).length === 0) {

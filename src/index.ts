@@ -242,6 +242,10 @@ class OsTicketMCPServer {
                   type: 'string',
                   description: 'Title for internal note (optional, default: "API Update")',
                 },
+                noteFormat: {
+                  type: 'string',
+                  description: 'Format for note: text, html, or markdown (default: markdown)',
+                },
               },
               required: ['number'],
             },
