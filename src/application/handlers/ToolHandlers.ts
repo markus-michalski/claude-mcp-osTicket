@@ -210,11 +210,12 @@ export class ToolHandlers {
     number: string;
     departmentId?: string | number;
     statusId?: string | number;
-    priorityId?: string | number;
     topicId?: string | number;
     staffId?: string | number;
     slaId?: string | number;
     parentTicketNumber?: string;
+    note?: string;
+    noteTitle?: string;
   }): Promise<any> {
     try {
       if (!args.number || args.number.trim().length === 0) {
@@ -225,11 +226,12 @@ export class ToolHandlers {
       const updates: any = {};
       if (args.departmentId !== undefined) updates.departmentId = args.departmentId;
       if (args.statusId !== undefined) updates.statusId = args.statusId;
-      if (args.priorityId !== undefined) updates.priorityId = args.priorityId;
       if (args.topicId !== undefined) updates.topicId = args.topicId;
       if (args.staffId !== undefined) updates.staffId = args.staffId;
       if (args.slaId !== undefined) updates.slaId = args.slaId;
       if (args.parentTicketNumber !== undefined) updates.parentTicketNumber = args.parentTicketNumber;
+      if (args.note !== undefined) updates.note = args.note;
+      if (args.noteTitle !== undefined) updates.noteTitle = args.noteTitle;
 
       // Check if at least one field is being updated
       if (Object.keys(updates).length === 0) {

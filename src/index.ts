@@ -202,7 +202,7 @@ class OsTicketMCPServer {
           },
           {
             name: 'update_ticket',
-            description: 'Update an existing osTicket ticket (department, status, priority, assignee, etc.)',
+            description: 'Update an existing osTicket ticket (department, status, assignee, notes, etc.)',
             inputSchema: {
               type: 'object',
               properties: {
@@ -217,10 +217,6 @@ class OsTicketMCPServer {
                 statusId: {
                   type: ['string', 'number'],
                   description: 'Status ID or name (Open, Closed, etc.)',
-                },
-                priorityId: {
-                  type: ['string', 'number'],
-                  description: 'Priority ID or name',
                 },
                 topicId: {
                   type: ['string', 'number'],
@@ -237,6 +233,14 @@ class OsTicketMCPServer {
                 parentTicketNumber: {
                   type: 'string',
                   description: 'Parent ticket number (to make this a subticket)',
+                },
+                note: {
+                  type: 'string',
+                  description: 'Add internal note (staff only, not visible to user)',
+                },
+                noteTitle: {
+                  type: 'string',
+                  description: 'Title for internal note (optional, default: "API Update")',
                 },
               },
               required: ['number'],
