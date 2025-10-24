@@ -238,9 +238,9 @@ export class OsTicketApiClient {
    */
   async healthCheck(): Promise<boolean> {
     try {
-      // osTicket wildcard API doesn't have a dedicated health endpoint
-      // We just check if the wildcard endpoint is reachable
-      const url = new URL('/api/wildcard.php', this.apiUrl);
+      // Use tickets-stats endpoint as health check (minimal load, just COUNT(*))
+      // Works with both wildcard API keys and specific API keys with can_read_stats permission
+      const url = new URL('/api/tickets-stats.php', this.apiUrl);
       await this.makeRequest('GET', url.toString());
       return true;
     } catch {
