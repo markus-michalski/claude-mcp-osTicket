@@ -11,6 +11,12 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [3.0.2] - 2025-10-24
+
+
+
+---
+
 ## [3.0.1] - 2025-10-24
 
 ### Added
@@ -182,7 +188,7 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## Versionshistorie
 
-[Unreleased]: https://github.com/markus-michalski/claude-mcp-osTicket/compare/v3.0.1...HEAD
+[Unreleased]: https://github.com/markus-michalski/claude-mcp-osTicket/compare/v3.0.2...HEAD
 [1.0.0]: https://github.com/username/claude-mcp-osticket/releases/tag/v1.0.0
 [1.1.0]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v1.1.0
 [1.1.1]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v1.1.1
@@ -193,3 +199,4 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 [2.0.0]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v2.0.0
 [3.0.0]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v3.0.0
 [3.0.1]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v3.0.1
+[3.0.2]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v3.0.2
