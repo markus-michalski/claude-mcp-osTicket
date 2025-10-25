@@ -144,6 +144,9 @@ export class OsTicketApiClient {
     staffId?: string | number;
     slaId?: string | number;
     parentTicketNumber?: string;
+    note?: string;
+    noteTitle?: string;
+    noteFormat?: string;
   }): Promise<any> {
     const url = new URL(`/api/tickets-update.php/${number}.json`, this.apiUrl);
     return await this.makeRequest('PATCH', url.toString(), updates);
