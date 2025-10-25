@@ -220,6 +220,12 @@ export class OsTicketApiClient {
         });
       });
 
+      // Add timeout (10 seconds) to prevent hanging
+      req.setTimeout(10000, () => {
+        req.destroy();
+        reject(new Error('Request timeout after 10 seconds'));
+      });
+
       req.on('error', (error) => {
         reject(new Error(`Request failed: ${error.message}`));
       });

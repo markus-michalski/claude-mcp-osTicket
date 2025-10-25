@@ -84,9 +84,11 @@ class OsTicketMCPServer {
     // Health check
     const healthy = await this.apiClient.healthCheck();
     if (!healthy) {
-      throw new Error('Health check failed - API not accessible');
+      this.logger.warn('⚠ Health check failed - Some API endpoints may not be available');
+      this.logger.warn('⚠ Only basic ticket creation will work (wildcard API)');
+    } else {
+      this.logger.info('✓ Health check passed');
     }
-    this.logger.info('✓ Health check passed');
   }
 
   /**
