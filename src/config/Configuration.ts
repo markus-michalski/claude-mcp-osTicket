@@ -73,7 +73,7 @@ export class Configuration {
     // Validate API URL format
     try {
       new URL(this.osTicketApiUrl);
-    } catch (error) {
+    } catch {
       throw new Error(`Invalid OSTICKET_API_URL: ${this.osTicketApiUrl}`);
     }
 
