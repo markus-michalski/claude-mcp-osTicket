@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: ['18', '20', '22']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: TypeScript Type Check
+        run: npm run type-check
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Build Check
+        run: npm run build
+
+  package-validation:
+    name: Package Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify Required Files
+        run: |
+          echo "Verifying MCP server structure..."
+          test -f package.json || { echo "Error: package.json not found"; exit 1; }
+          test -f tsconfig.json || { echo "Error: tsconfig.json not found"; exit 1; }
+          test -f README.md || { echo "Error: README.md not found"; exit 1; }
+          test -f CHANGELOG.md || { echo "Error: CHANGELOG.md not found"; exit 1; }
+          test -f .env.example || { echo "Error: .env.example not found"; exit 1; }
+          test -d src || { echo "Error: src/ directory not found"; exit 1; }
+          echo "✓ All required files present"
+
+      - name: Verify CHANGELOG format
+        run: |
+          echo "Checking CHANGELOG.md format..."
+          grep -q "## \[Unreleased\]" CHANGELOG.md || { echo "Error: [Unreleased] section missing"; exit 1; }
+          echo "✓ CHANGELOG format valid"
