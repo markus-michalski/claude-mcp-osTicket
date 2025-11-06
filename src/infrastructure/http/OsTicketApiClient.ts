@@ -9,6 +9,7 @@ export class OsTicketApiClient {
   private readonly apiUrl: string;
   private readonly apiKey: string;
   private readonly rejectUnauthorized: boolean;
+  private statusCache: Array<{id: number; name: string; state: string}> | null = null;
 
   constructor(apiUrl: string, apiKey: string, rejectUnauthorized: boolean = false) {
     this.apiUrl = apiUrl;
@@ -133,34 +134,65 @@ export class OsTicketApiClient {
   }
 
   /**
-   * Resolve status name to ID
-   * Supports common osTicket status names
+   * Get all ticket statuses
+   * GET /api/tickets-statuses.php
+   *
+   * Returns array of statuses: [{"id": 1, "name": "Open", "state": "open"}, ...]
    */
-  private resolveStatusId(statusId: string | number): number {
+  async getTicketStatuses(): Promise<Array<{id: number; name: string; state: string}>> {
+    const url = new URL('/api/tickets-statuses.php', this.apiUrl);
+    return await this.makeRequest('GET', url.toString());
+  }
+
+  /**
+   * Load ticket statuses from API and cache them
+   * Only loads once per instance lifecycle
+   */
+  private async loadStatusesIfNeeded(): Promise<void> {
+    if (this.statusCache !== null) {
+      return; // Already loaded
+    }
+
+    try {
+      this.statusCache = await this.getTicketStatuses();
+    } catch (error) {
+      // If status endpoint fails, fall back to empty cache
+      // This allows the system to still work with numeric IDs
+      this.statusCache = [];
+      console.warn('Failed to load ticket statuses from API:', error);
+    }
+  }
+
+  /**
+   * Resolve status name to ID
+   * Dynamically looks up status from API on first call, then caches
+   */
+  private async resolveStatusId(statusId: string | number): Promise<number> {
     // If already a number, return it
     if (typeof statusId === 'number') {
       return statusId;
     }
 
-    // Map common status names to IDs (case-insensitive)
-    const statusMap: Record<string, number> = {
-      'open': 1,
-      'resolved': 2,
-      'closed': 3,
-    };
-
-    const normalized = statusId.toLowerCase().trim();
-    if (normalized in statusMap) {
-      return statusMap[normalized];
-    }
-
-    // If not found, try to parse as number
+    // Try to parse as number first
     const parsed = parseInt(statusId, 10);
     if (!isNaN(parsed)) {
       return parsed;
     }
 
-    throw new Error(`Invalid status: "${statusId}". Use status ID (1-3) or name ("open", "resolved", "closed")`);
+    // Load statuses from API if not cached
+    await this.loadStatusesIfNeeded();
+
+    // Find status by name (case-insensitive)
+    const normalized = statusId.toLowerCase().trim();
+    const status = this.statusCache?.find(s => s.name.toLowerCase() === normalized);
+
+    if (status) {
+      return status.id;
+    }
+
+    // Build helpful error message with available status names
+    const availableNames = this.statusCache?.map(s => s.name).join(', ') || 'none';
+    throw new Error(`Invalid status: "${statusId}". Available statuses: ${availableNames}`);
   }
 
   /**
@@ -242,7 +274,7 @@ export class OsTicketApiClient {
    * PATCH /api/tickets-update.php/:number.json
    *
    * Converts string values to IDs where supported:
-   * - statusId: "open" -> 1, "resolved" -> 2, "closed" -> 3
+   * - statusId: Dynamically resolved from API (any status name works)
    * - departmentId, staffId, topicId, slaId: numeric only (for now)
    */
   async updateTicket(number: string, updates: {
@@ -260,9 +292,12 @@ export class OsTicketApiClient {
     // Resolve all ID fields (convert names to IDs where supported)
     const resolvedUpdates: any = {};
 
+    // Resolve statusId (async, loads from API on first call)
     if (updates.statusId !== undefined) {
-      resolvedUpdates.statusId = this.resolveStatusId(updates.statusId);
+      resolvedUpdates.statusId = await this.resolveStatusId(updates.statusId);
     }
+
+    // Resolve other IDs (sync for now)
     if (updates.departmentId !== undefined) {
       resolvedUpdates.departmentId = this.resolveDepartmentId(updates.departmentId);
     }
