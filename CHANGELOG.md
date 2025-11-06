@@ -11,6 +11,24 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [1.0.1] - 2025-11-06
+
+### Added
+- Add dynamic status lookup with API caching
+- Add status name to ID resolution for update_ticket
+
+### Changed
+- removed Zone.Identifier file
+- added missing License file
+- Add GitHub Actions CI workflow
+- Reduce README to minimum and reference Wiki.js FAQ
+
+### Fixed
+- Add ESLint 9.x flat config and fix linting errors
+
+
+---
+
 ## [1.0.0] - 2025-11-05
 
 ### Added
@@ -72,4 +90,4 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
-[Unreleased]: https://github.com/markus-michalski/claude-mcp-osTicket/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/markus-michalski/claude-mcp-osTicket/compare/v1.0.1...HEAD
