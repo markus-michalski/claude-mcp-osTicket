@@ -133,8 +133,117 @@ export class OsTicketApiClient {
   }
 
   /**
+   * Resolve status name to ID
+   * Supports common osTicket status names
+   */
+  private resolveStatusId(statusId: string | number): number {
+    // If already a number, return it
+    if (typeof statusId === 'number') {
+      return statusId;
+    }
+
+    // Map common status names to IDs (case-insensitive)
+    const statusMap: Record<string, number> = {
+      'open': 1,
+      'resolved': 2,
+      'closed': 3,
+    };
+
+    const normalized = statusId.toLowerCase().trim();
+    if (normalized in statusMap) {
+      return statusMap[normalized];
+    }
+
+    // If not found, try to parse as number
+    const parsed = parseInt(statusId, 10);
+    if (!isNaN(parsed)) {
+      return parsed;
+    }
+
+    throw new Error(`Invalid status: "${statusId}". Use status ID (1-3) or name ("open", "resolved", "closed")`);
+  }
+
+  /**
+   * Resolve department name to ID
+   * Note: This requires a ticket lookup to get the department mapping
+   * For now, only numeric IDs are supported
+   */
+  private resolveDepartmentId(departmentId: string | number): number {
+    if (typeof departmentId === 'number') {
+      return departmentId;
+    }
+
+    // Try to parse as number
+    const parsed = parseInt(departmentId, 10);
+    if (!isNaN(parsed)) {
+      return parsed;
+    }
+
+    // Department name lookup not yet implemented
+    throw new Error(`Department name lookup not yet supported. Please use department ID (numeric). Received: "${departmentId}"`);
+  }
+
+  /**
+   * Resolve staff username to ID
+   */
+  private resolveStaffId(staffId: string | number): number {
+    if (typeof staffId === 'number') {
+      return staffId;
+    }
+
+    // Try to parse as number
+    const parsed = parseInt(staffId, 10);
+    if (!isNaN(parsed)) {
+      return parsed;
+    }
+
+    // Staff username lookup not yet implemented
+    throw new Error(`Staff username lookup not yet supported. Please use staff ID (numeric). Received: "${staffId}"`);
+  }
+
+  /**
+   * Resolve topic name to ID
+   */
+  private resolveTopicId(topicId: string | number): number {
+    if (typeof topicId === 'number') {
+      return topicId;
+    }
+
+    // Try to parse as number
+    const parsed = parseInt(topicId, 10);
+    if (!isNaN(parsed)) {
+      return parsed;
+    }
+
+    // Topic name lookup not yet implemented
+    throw new Error(`Topic name lookup not yet supported. Please use topic ID (numeric). Received: "${topicId}"`);
+  }
+
+  /**
+   * Resolve SLA name to ID
+   */
+  private resolveSlaId(slaId: string | number): number {
+    if (typeof slaId === 'number') {
+      return slaId;
+    }
+
+    // Try to parse as number
+    const parsed = parseInt(slaId, 10);
+    if (!isNaN(parsed)) {
+      return parsed;
+    }
+
+    // SLA name lookup not yet implemented
+    throw new Error(`SLA name lookup not yet supported. Please use SLA ID (numeric). Received: "${slaId}"`);
+  }
+
+  /**
    * Update ticket
    * PATCH /api/tickets-update.php/:number.json
+   *
+   * Converts string values to IDs where supported:
+   * - statusId: "open" -> 1, "resolved" -> 2, "closed" -> 3
+   * - departmentId, staffId, topicId, slaId: numeric only (for now)
    */
   async updateTicket(number: string, updates: {
     departmentId?: string | number;
@@ -148,8 +257,34 @@ export class OsTicketApiClient {
     noteTitle?: string;
     noteFormat?: string;
   }): Promise<any> {
+    // Resolve all ID fields (convert names to IDs where supported)
+    const resolvedUpdates: any = {};
+
+    if (updates.statusId !== undefined) {
+      resolvedUpdates.statusId = this.resolveStatusId(updates.statusId);
+    }
+    if (updates.departmentId !== undefined) {
+      resolvedUpdates.departmentId = this.resolveDepartmentId(updates.departmentId);
+    }
+    if (updates.staffId !== undefined) {
+      resolvedUpdates.staffId = this.resolveStaffId(updates.staffId);
+    }
+    if (updates.topicId !== undefined) {
+      resolvedUpdates.topicId = this.resolveTopicId(updates.topicId);
+    }
+    if (updates.slaId !== undefined) {
+      resolvedUpdates.slaId = this.resolveSlaId(updates.slaId);
+    }
+
+    // Copy other fields as-is
+    if (updates.priorityId !== undefined) resolvedUpdates.priorityId = updates.priorityId;
+    if (updates.parentTicketNumber !== undefined) resolvedUpdates.parentTicketNumber = updates.parentTicketNumber;
+    if (updates.note !== undefined) resolvedUpdates.note = updates.note;
+    if (updates.noteTitle !== undefined) resolvedUpdates.noteTitle = updates.noteTitle;
+    if (updates.noteFormat !== undefined) resolvedUpdates.noteFormat = updates.noteFormat;
+
     const url = new URL(`/api/tickets-update.php/${number}.json`, this.apiUrl);
-    return await this.makeRequest('PATCH', url.toString(), updates);
+    return await this.makeRequest('PATCH', url.toString(), resolvedUpdates);
   }
 
   /**
