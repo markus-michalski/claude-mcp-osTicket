@@ -46,7 +46,7 @@ class OsTicketMCPServer {
     this.server = new Server(
       {
         name: 'osticket-mcp-server',
-        version: '2.0.0', // Bumped to 2.0.0 - API-only, no DB access
+        version: '2.1.0', // Bumped to 2.1.0 - Added Subticket Management tools
       },
       {
         capabilities: {
@@ -266,6 +266,66 @@ class OsTicketMCPServer {
               required: ['number'],
             },
           },
+          {
+            name: 'get_parent_ticket',
+            description: 'Get the parent ticket of a subticket (requires Subticket Manager Plugin)',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                number: {
+                  type: 'string',
+                  description: 'Child ticket number',
+                },
+              },
+              required: ['number'],
+            },
+          },
+          {
+            name: 'get_child_tickets',
+            description: 'Get list of child tickets (subtickets) for a parent ticket (requires Subticket Manager Plugin)',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                number: {
+                  type: 'string',
+                  description: 'Parent ticket number',
+                },
+              },
+              required: ['number'],
+            },
+          },
+          {
+            name: 'create_subticket_link',
+            description: 'Create a parent-child relationship between two tickets (requires Subticket Manager Plugin)',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                parentNumber: {
+                  type: 'string',
+                  description: 'Parent ticket number',
+                },
+                childNumber: {
+                  type: 'string',
+                  description: 'Child ticket number',
+                },
+              },
+              required: ['parentNumber', 'childNumber'],
+            },
+          },
+          {
+            name: 'unlink_subticket',
+            description: 'Unlink a subticket from its parent (requires Subticket Manager Plugin)',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                number: {
+                  type: 'string',
+                  description: 'Child ticket number to unlink',
+                },
+              },
+              required: ['number'],
+            },
+          },
         ],
       };
     });
@@ -316,6 +376,22 @@ class OsTicketMCPServer {
 
           case 'delete_ticket':
             result = await this.handlers.handleDeleteTicket(args as any);
+            break;
+
+          case 'get_parent_ticket':
+            result = await this.handlers.handleGetParentTicket(args as any);
+            break;
+
+          case 'get_child_tickets':
+            result = await this.handlers.handleGetChildTickets(args as any);
+            break;
+
+          case 'create_subticket_link':
+            result = await this.handlers.handleCreateSubticketLink(args as any);
+            break;
+
+          case 'unlink_subticket':
+            result = await this.handlers.handleUnlinkSubticket(args as any);
             break;
 
           default:

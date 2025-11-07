@@ -332,6 +332,51 @@ export class OsTicketApiClient {
   }
 
   /**
+   * Get parent ticket of a subticket
+   * GET /api/tickets-subtickets-parent.php/:number.json
+   *
+   * Returns parent ticket details or 404 if ticket has no parent
+   */
+  async getParentTicket(childNumber: string): Promise<any> {
+    const url = new URL(`/api/tickets-subtickets-parent.php/${childNumber}.json`, this.apiUrl);
+    return await this.makeRequest('GET', url.toString());
+  }
+
+  /**
+   * Get list of child tickets (subtickets)
+   * GET /api/tickets-subtickets-list.php/:number.json
+   *
+   * Returns array of child tickets or empty array if no children
+   */
+  async getChildTickets(parentNumber: string): Promise<any> {
+    const url = new URL(`/api/tickets-subtickets-list.php/${parentNumber}.json`, this.apiUrl);
+    return await this.makeRequest('GET', url.toString());
+  }
+
+  /**
+   * Create subticket link (make ticket a child of another ticket)
+   * POST /api/tickets-subtickets-create.php/:parentNumber.json
+   *
+   * @param parentNumber - Parent ticket number
+   * @param childNumber - Child ticket number or ID
+   */
+  async createSubticketLink(parentNumber: string, childNumber: string | number): Promise<any> {
+    const url = new URL(`/api/tickets-subtickets-create.php/${parentNumber}.json`, this.apiUrl);
+    return await this.makeRequest('POST', url.toString(), { childId: childNumber });
+  }
+
+  /**
+   * Unlink subticket (remove parent-child relationship)
+   * DELETE /api/tickets-subtickets-unlink.php/:childNumber.json
+   *
+   * Removes the parent link from the child ticket
+   */
+  async unlinkSubticket(childNumber: string): Promise<any> {
+    const url = new URL(`/api/tickets-subtickets-unlink.php/${childNumber}.json`, this.apiUrl);
+    return await this.makeRequest('DELETE', url.toString());
+  }
+
+  /**
    * Make HTTP request to osTicket API
    */
   private async makeRequest(
@@ -388,7 +433,18 @@ export class OsTicketApiClient {
             500: 'Internal Server Error - osTicket API error',
           };
 
-          const errorMessage = errorMap[statusCode] || `HTTP ${statusCode} - ${data}`;
+          // Try to parse JSON error response (new format from security fixes)
+          let errorData = data;
+          try {
+            const json = JSON.parse(data);
+            if (json.error && json.message) {
+              errorData = json.message; // Extract clean message from JSON response
+            }
+          } catch {
+            // Keep raw data if not JSON (backward compatibility with old plain text errors)
+          }
+
+          const errorMessage = errorMap[statusCode] || `HTTP ${statusCode} - ${errorData}`;
           reject(new Error(`osTicket API error: ${errorMessage}`));
         });
       });

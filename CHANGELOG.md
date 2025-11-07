@@ -9,6 +9,20 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Added
+- Add Subticket Management tools (4 new MCP tools):
+  - `get_parent_ticket` - Get parent ticket of a subticket
+  - `get_child_tickets` - Get list of child tickets
+  - `create_subticket_link` - Create parent-child relationship
+  - `unlink_subticket` - Remove parent-child relationship
+- Add support for new Subticket API endpoints from API Endpoints Plugin v1.1.0+
+
+### Changed
+- Improve JSON error response parsing (support new security-enhanced error format)
+
+### Security
+- Improve error message handling for JSON error responses from API
+
 ---
 
 ## [1.0.1] - 2025-11-06

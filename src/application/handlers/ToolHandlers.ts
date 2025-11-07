@@ -278,4 +278,126 @@ export class ToolHandlers {
       };
     }
   }
+
+  /**
+   * Handle get_parent_ticket tool call
+   * GET /api/tickets-subtickets-parent.php/:number.json
+   *
+   * Gets the parent ticket of a subticket
+   */
+  async handleGetParentTicket(args: { number: string }): Promise<any> {
+    try {
+      if (!args.number || args.number.trim().length === 0) {
+        return { error: 'Ticket number is required' };
+      }
+
+      // Get parent ticket via API
+      const result = await this.apiClient.getParentTicket(args.number);
+
+      return {
+        success: true,
+        parent: result.parent,
+        message: `Parent ticket retrieved for ticket ${args.number}`
+      };
+    } catch (error) {
+      return {
+        error: `Failed to get parent ticket: ${error instanceof Error ? error.message : String(error)}`
+      };
+    }
+  }
+
+  /**
+   * Handle get_child_tickets tool call
+   * GET /api/tickets-subtickets-list.php/:number.json
+   *
+   * Gets the list of child tickets (subtickets) for a parent ticket
+   */
+  async handleGetChildTickets(args: { number: string }): Promise<any> {
+    try {
+      if (!args.number || args.number.trim().length === 0) {
+        return { error: 'Ticket number is required' };
+      }
+
+      // Get child tickets via API
+      const result = await this.apiClient.getChildTickets(args.number);
+
+      // API returns: { children: [...] }
+      const children = result.children || [];
+
+      return {
+        success: true,
+        children: children,
+        total: children.length,
+        message: `Found ${children.length} child ticket(s) for ticket ${args.number}`
+      };
+    } catch (error) {
+      return {
+        error: `Failed to get child tickets: ${error instanceof Error ? error.message : String(error)}`
+      };
+    }
+  }
+
+  /**
+   * Handle create_subticket_link tool call
+   * POST /api/tickets-subtickets-create.php/:parentNumber.json
+   *
+   * Creates a parent-child relationship between two tickets
+   */
+  async handleCreateSubticketLink(args: {
+    parentNumber: string;
+    childNumber: string;
+  }): Promise<any> {
+    try {
+      if (!args.parentNumber || args.parentNumber.trim().length === 0) {
+        return { error: 'Parent ticket number is required' };
+      }
+
+      if (!args.childNumber || args.childNumber.trim().length === 0) {
+        return { error: 'Child ticket number is required' };
+      }
+
+      // Create subticket link via API
+      const result = await this.apiClient.createSubticketLink(
+        args.parentNumber,
+        args.childNumber
+      );
+
+      return {
+        success: true,
+        result: result,
+        message: `Subticket link created: ${args.childNumber} is now a child of ${args.parentNumber}`
+      };
+    } catch (error) {
+      return {
+        error: `Failed to create subticket link: ${error instanceof Error ? error.message : String(error)}`
+      };
+    }
+  }
+
+  /**
+   * Handle unlink_subticket tool call
+   * DELETE /api/tickets-subtickets-unlink.php/:childNumber.json
+   *
+   * Removes the parent-child relationship (unlinks subticket from parent)
+   */
+  async handleUnlinkSubticket(args: { number: string }): Promise<any> {
+    try {
+      if (!args.number || args.number.trim().length === 0) {
+        return { error: 'Ticket number is required' };
+      }
+
+      // Unlink subticket via API
+      const result = await this.apiClient.unlinkSubticket(args.number);
+
+      return {
+        success: true,
+        result: result,
+        message: `Subticket ${args.number} has been unlinked from its parent`
+      };
+    } catch (error) {
+      return {
+        error: `Failed to unlink subticket: ${error instanceof Error ? error.message : String(error)}`
+      };
+    }
+  }
 }

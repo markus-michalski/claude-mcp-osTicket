@@ -9,7 +9,7 @@
 The comprehensive guide includes:
 - Installation instructions
 - Configuration examples
-- All 7 MCP tools with parameters
+- All 11 MCP tools with parameters
 - Troubleshooting guide
 - Best practices & workflows
 
@@ -42,6 +42,7 @@ npm run build
 
 ## 🛠️ Available Tools
 
+### Core Ticket Management
 - `get_ticket` - Retrieve complete tickets with all messages
 - `list_tickets` - List tickets with filters (status, department, pagination)
 - `search_tickets` - Full-text search across ticket subjects and numbers
@@ -49,6 +50,14 @@ npm run build
 - `create_ticket` - Create new tickets with Markdown support
 - `update_ticket` - Modify ticket properties (status, department, assignee, etc.)
 - `delete_ticket` - Permanently delete tickets
+
+### Subticket Management (NEW)
+- `get_parent_ticket` - Get parent ticket of a subticket
+- `get_child_tickets` - Get list of child tickets (subtickets)
+- `create_subticket_link` - Create parent-child relationship between tickets
+- `unlink_subticket` - Remove parent-child relationship
+
+**Note:** Subticket tools require the [Subticket Manager Plugin](https://github.com/markus-michalski/osticket-plugins/tree/main/subticket-manager) to be installed and active on osTicket.
 
 ## 📄 License
 
