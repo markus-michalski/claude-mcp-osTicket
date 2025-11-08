@@ -294,9 +294,14 @@ export class ToolHandlers {
       // Get parent ticket via API
       const result = await this.apiClient.getParentTicket(args.number);
 
+      // Validate response structure
+      if (!result || typeof result !== 'object') {
+        return { error: 'Invalid API response format' };
+      }
+
       return {
         success: true,
-        parent: result.parent,
+        parent: result.parent ?? null,
         message: `Parent ticket retrieved for ticket ${args.number}`
       };
     } catch (error) {
@@ -320,6 +325,11 @@ export class ToolHandlers {
 
       // Get child tickets via API
       const result = await this.apiClient.getChildTickets(args.number);
+
+      // Validate response structure
+      if (!result || typeof result !== 'object') {
+        return { error: 'Invalid API response format' };
+      }
 
       // API returns: { children: [...] }
       const children = result.children || [];
@@ -362,9 +372,15 @@ export class ToolHandlers {
         args.childNumber
       );
 
+      // Validate response structure
+      if (!result || typeof result !== 'object' || !result.success) {
+        return { error: 'Invalid API response format' };
+      }
+
       return {
         success: true,
-        result: result,
+        parent: result.parent,
+        child: result.child,
         message: `Subticket link created: ${args.childNumber} is now a child of ${args.parentNumber}`
       };
     } catch (error) {
@@ -389,9 +405,14 @@ export class ToolHandlers {
       // Unlink subticket via API
       const result = await this.apiClient.unlinkSubticket(args.number);
 
+      // Validate response structure
+      if (!result || typeof result !== 'object' || !result.success) {
+        return { error: 'Invalid API response format' };
+      }
+
       return {
         success: true,
-        result: result,
+        child: result.child,
         message: `Subticket ${args.number} has been unlinked from its parent`
       };
     } catch (error) {

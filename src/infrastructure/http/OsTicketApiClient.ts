@@ -1,5 +1,11 @@
 import https from 'https';
 import http from 'http';
+import type {
+  GetParentResponse,
+  GetChildrenResponse,
+  CreateLinkResponse,
+  UnlinkResponse
+} from './types/SubticketTypes.js';
 
 /**
  * osTicket API Client
@@ -335,9 +341,14 @@ export class OsTicketApiClient {
    * Get parent ticket of a subticket
    * GET /api/tickets-subtickets-parent.php/:number.json
    *
-   * Returns parent ticket details or 404 if ticket has no parent
+   * @param childNumber - Child ticket number
+   * @returns Promise<GetParentResponse> Parent ticket data or null
+   * @throws Error HTTP 400 - Invalid ticket number
+   * @throws Error HTTP 403 - Not authorized
+   * @throws Error HTTP 404 - Ticket not found
+   * @throws Error HTTP 501 - Subticket plugin not available
    */
-  async getParentTicket(childNumber: string): Promise<any> {
+  async getParentTicket(childNumber: string): Promise<GetParentResponse> {
     const url = new URL(`/api/tickets-subtickets-parent.php/${childNumber}.json`, this.apiUrl);
     return await this.makeRequest('GET', url.toString());
   }
@@ -346,9 +357,14 @@ export class OsTicketApiClient {
    * Get list of child tickets (subtickets)
    * GET /api/tickets-subtickets-list.php/:number.json
    *
-   * Returns array of child tickets or empty array if no children
+   * @param parentNumber - Parent ticket number
+   * @returns Promise<GetChildrenResponse> Array of child tickets (empty if no children)
+   * @throws Error HTTP 400 - Invalid ticket number
+   * @throws Error HTTP 403 - Not authorized
+   * @throws Error HTTP 404 - Ticket not found
+   * @throws Error HTTP 501 - Subticket plugin not available
    */
-  async getChildTickets(parentNumber: string): Promise<any> {
+  async getChildTickets(parentNumber: string): Promise<GetChildrenResponse> {
     const url = new URL(`/api/tickets-subtickets-list.php/${parentNumber}.json`, this.apiUrl);
     return await this.makeRequest('GET', url.toString());
   }
@@ -359,8 +375,14 @@ export class OsTicketApiClient {
    *
    * @param parentNumber - Parent ticket number
    * @param childNumber - Child ticket number or ID
+   * @returns Promise<CreateLinkResponse> Success response with parent and child data
+   * @throws Error HTTP 400 - Invalid ticket numbers or self-link attempt
+   * @throws Error HTTP 403 - Not authorized (permission or department access)
+   * @throws Error HTTP 404 - Parent or child ticket not found
+   * @throws Error HTTP 422 - Child already has a parent
+   * @throws Error HTTP 501 - Subticket plugin not available
    */
-  async createSubticketLink(parentNumber: string, childNumber: string | number): Promise<any> {
+  async createSubticketLink(parentNumber: string, childNumber: string | number): Promise<CreateLinkResponse> {
     const url = new URL(`/api/tickets-subtickets-create.php/${parentNumber}.json`, this.apiUrl);
     return await this.makeRequest('POST', url.toString(), { childId: childNumber });
   }
@@ -369,9 +391,14 @@ export class OsTicketApiClient {
    * Unlink subticket (remove parent-child relationship)
    * DELETE /api/tickets-subtickets-unlink.php/:childNumber.json
    *
-   * Removes the parent link from the child ticket
+   * @param childNumber - Child ticket number to unlink
+   * @returns Promise<UnlinkResponse> Success response with child ticket data
+   * @throws Error HTTP 400 - Invalid child ticket number
+   * @throws Error HTTP 403 - Not authorized (permission or department access)
+   * @throws Error HTTP 404 - Child ticket not found or has no parent
+   * @throws Error HTTP 501 - Subticket plugin not available
    */
-  async unlinkSubticket(childNumber: string): Promise<any> {
+  async unlinkSubticket(childNumber: string): Promise<UnlinkResponse> {
     const url = new URL(`/api/tickets-subtickets-unlink.php/${childNumber}.json`, this.apiUrl);
     return await this.makeRequest('DELETE', url.toString());
   }
@@ -430,7 +457,9 @@ export class OsTicketApiClient {
             401: 'Unauthorized - Invalid API key',
             403: 'Forbidden - Access denied',
             404: 'Not Found - API endpoint not found',
+            422: 'Unprocessable Entity - Duplicate or invalid relationship',
             500: 'Internal Server Error - osTicket API error',
+            501: 'Not Implemented - Subticket plugin not available',
           };
 
           // Try to parse JSON error response (new format from security fixes)

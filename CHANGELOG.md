@@ -16,12 +16,23 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
   - `create_subticket_link` - Create parent-child relationship
   - `unlink_subticket` - Remove parent-child relationship
 - Add support for new Subticket API endpoints from API Endpoints Plugin v1.1.0+
+- Add TypeScript type definitions for Subticket API endpoints
+  - New file: `src/infrastructure/http/types/SubticketTypes.ts`
+  - Strict typing for `GetParentResponse`, `GetChildrenResponse`, `CreateLinkResponse`, `UnlinkResponse`
+  - Comprehensive JSDoc documentation with error codes
+- Add HTTP 422 and 501 error handling to error map
+- Add response validation in all Subticket tool handlers
 
 ### Changed
 - Improve JSON error response parsing (support new security-enhanced error format)
+- Improve type safety by replacing `Promise<any>` with specific types for Subticket APIs
+- Enhance error handling with detailed `@throws` JSDoc annotations
+- Add runtime response validation (type checks before returning data)
 
 ### Security
 - Improve error message handling for JSON error responses from API
+- Add stricter runtime type validation for API responses
+- Improve error message handling to prevent data leakage
 
 ---
 
