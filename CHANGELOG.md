@@ -9,6 +9,18 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+---
+
+## [1.1.0] - 2025-11-08
+
+### Added
+- Add TypeScript type safety for Subticket API endpoints
+- Add Subticket Management tools and improve error handling
+
+### Fixed
+- Remove explicit port from HTTP requests to fix 404 errors
+
+
 ### Added
 - Add Subticket Management tools (4 new MCP tools):
   - `get_parent_ticket` - Get parent ticket of a subticket
@@ -123,4 +135,4 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
-[Unreleased]: https://github.com/markus-michalski/claude-mcp-osTicket/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/markus-michalski/claude-mcp-osTicket/compare/v1.1.0...HEAD
