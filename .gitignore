@@ -31,3 +31,6 @@ yarn-error.log*
 # Cache
 .eslintcache
 *.tsbuildinfo
+
+# Claude Code project instructions
+CLAUDE.md
