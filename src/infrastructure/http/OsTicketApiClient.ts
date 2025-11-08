@@ -415,10 +415,9 @@ export class OsTicketApiClient {
       const parsedUrl = new URL(url);
       const isHttps = parsedUrl.protocol === 'https:';
 
-      const options = {
+      const options: any = {
         method,
         hostname: parsedUrl.hostname,
-        port: parsedUrl.port || (isHttps ? 443 : 80),
         path: parsedUrl.pathname + parsedUrl.search,
         headers: {
           'X-API-Key': this.apiKey,
@@ -426,6 +425,11 @@ export class OsTicketApiClient {
         },
         rejectUnauthorized: this.rejectUnauthorized,
       };
+
+      // Only set port if explicitly specified in URL (not default 443/80)
+      if (parsedUrl.port) {
+        options.port = parsedUrl.port;
+      }
 
       const client = isHttps ? https : http;
       const req = client.request(options, (res) => {
@@ -471,6 +475,13 @@ export class OsTicketApiClient {
             }
           } catch {
             // Keep raw data if not JSON (backward compatibility with old plain text errors)
+          }
+
+          // For 404, prefer specific osTicket message over generic "endpoint not found"
+          // osTicket returns: "Ticket not found", "Help Topic not found", "Department not found", etc.
+          if (statusCode === 404 && errorData && errorData.trim() !== '') {
+            reject(new Error(`osTicket API error: ${errorData}`));
+            return;
           }
 
           const errorMessage = errorMap[statusCode] || `HTTP ${statusCode} - ${errorData}`;

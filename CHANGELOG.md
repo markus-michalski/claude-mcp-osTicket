@@ -29,6 +29,14 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 - Enhance error handling with detailed `@throws` JSDoc annotations
 - Add runtime response validation (type checks before returning data)
 
+### Fixed
+- Fix HTTP 404 errors by removing explicit port from HTTP requests
+  - Node.js HTTP client now omits default ports (443/80) from requests
+  - Matches curl behavior for better Apache compatibility
+- Improve 404 error messages to show specific osTicket messages
+  - Now shows "Ticket not found" instead of generic "API endpoint not found"
+  - Better error context for users (e.g., "Help Topic not found", "Department not found")
+
 ### Security
 - Improve error message handling for JSON error responses from API
 - Add stricter runtime type validation for API responses
