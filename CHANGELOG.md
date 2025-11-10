@@ -11,6 +11,17 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [1.1.1] - 2025-11-10
+
+### Changed
+- Add CLAUDE.md to .gitignore
+
+### Fixed
+- Add graceful MCP server shutdown
+
+
+---
+
 ## [1.1.0] - 2025-11-08
 
 ### Added
@@ -135,4 +146,4 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
-[Unreleased]: https://github.com/markus-michalski/claude-mcp-osTicket/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/markus-michalski/claude-mcp-osTicket/compare/v1.1.1...HEAD
