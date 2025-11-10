@@ -457,7 +457,7 @@ class OsTicketMCPServer {
 
     // Listen for close event from MCP client
     this.server.onclose = async () => {
-      await this.shutdown('close');
+      this.logger.info('Server connection closed by client');
     };
 
     this.logger.info('✓ Server running and ready (API-only mode)');
@@ -476,6 +476,8 @@ class OsTicketMCPServer {
     this.logger.warn(`Received ${signal}, shutting down gracefully...`);
 
     try {
+      // Close MCP server connection first
+      await this.server.close();
       this.logger.info('✓ Shutdown complete');
       process.exit(0);
     } catch (error) {
