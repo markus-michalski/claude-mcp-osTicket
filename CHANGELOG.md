@@ -11,6 +11,14 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [1.2.0] - 2025-12-10
+
+### Added
+- Add projectContext parameter for ticket creation
+
+
+---
+
 ## [1.1.1] - 2025-11-10
 
 ### Changed
@@ -146,4 +154,4 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
-[Unreleased]: https://github.com/markus-michalski/claude-mcp-osTicket/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/markus-michalski/claude-mcp-osTicket/compare/v1.2.0...HEAD
