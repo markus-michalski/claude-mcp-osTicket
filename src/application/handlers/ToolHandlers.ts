@@ -139,8 +139,13 @@ export class ToolHandlers {
    * - "markdown" - Content will be parsed as Markdown (DEFAULT)
    * - "html" - Content will be treated as HTML
    * - "text" - Content will be treated as plain text
+   *
+   * Project Context:
+   * - If projectContext is provided, it will be prepended to the message
+   * - Format: "**Projekt:** [projectContext]\n\n[original message]"
    */
   async handleCreateTicket(args: {
+    projectContext?: string;
     name?: string;
     email?: string;
     subject: string;
@@ -178,12 +183,21 @@ export class ToolHandlers {
         return { error: 'Message parameter is required' };
       }
 
+      // Build the final message with project context prepended if provided
+      let finalMessage = args.message.trim();
+      const projectContext = args.projectContext?.trim();
+
+      if (projectContext) {
+        // Prepend project context as first line in bold
+        finalMessage = `**Projekt:** ${projectContext}\n\n${finalMessage}`;
+      }
+
       // Create ticket via API
       const ticketNumber = await this.apiClient.createTicket({
         name: name,
         email: email,
         subject: args.subject.trim(),
-        message: args.message.trim(),
+        message: finalMessage,
         format: args.format || 'markdown',
         topicId: topicId,
         alert: false,
@@ -193,7 +207,8 @@ export class ToolHandlers {
       return {
         success: true,
         ticketNumber,
-        message: `Ticket created successfully with number: ${ticketNumber}${topicId ? ` with topic ID ${topicId}` : ''}.`
+        projectContext: projectContext || null,
+        message: `Ticket created successfully with number: ${ticketNumber}${topicId ? ` with topic ID ${topicId}` : ''}${projectContext ? ` for project "${projectContext}"` : ''}.`
       };
     } catch (error) {
       return {

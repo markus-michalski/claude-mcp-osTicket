@@ -169,10 +169,23 @@ class OsTicketMCPServer {
           },
           {
             name: 'create_ticket',
-            description: 'Create a new osTicket ticket via API. If name/email/topicId are not provided, defaults from environment variables are used. Supports Markdown formatting.',
+            description: `Create a new osTicket ticket via API. Supports Markdown formatting.
+
+IMPORTANT - Project Context Requirement:
+- Every ticket MUST include project context as the first line of the message
+- If the user does not specify a project, you MUST ask them:
+  "Geht es um das aktuelle Projekt [PROJECT_NAME] oder ein anderes Projekt?"
+- Use the projectContext parameter OR manually prepend "**Projekt:** [name]" to the message
+- The project context helps identify which codebase the ticket relates to since departments are not visible in ticket lists
+
+If name/email/topicId are not provided, defaults from environment variables are used.`,
             inputSchema: {
               type: 'object',
               properties: {
+                projectContext: {
+                  type: 'string',
+                  description: 'Project name/path this ticket relates to (e.g., "claude-mcp-osTicket", "invoice-management"). Will be automatically prepended to the message as "**Projekt:** [value]". If not provided and no project is mentioned in the message, you MUST ask the user which project this ticket is about.',
+                },
                 name: {
                   type: 'string',
                   description: 'User name (optional - uses OSTICKET_DEFAULT_NAME if not provided)',
@@ -187,7 +200,7 @@ class OsTicketMCPServer {
                 },
                 message: {
                   type: 'string',
-                  description: 'Ticket message/description (supports Markdown)',
+                  description: 'Ticket message/description (supports Markdown). Note: Project context will be automatically prepended if projectContext parameter is provided.',
                 },
                 format: {
                   type: 'string',
