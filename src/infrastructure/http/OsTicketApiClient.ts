@@ -165,7 +165,8 @@ export class OsTicketApiClient {
       // If status endpoint fails, fall back to empty cache
       // This allows the system to still work with numeric IDs
       this.statusCache = [];
-      console.warn('Failed to load ticket statuses from API:', error);
+      // Note: Logging moved to stderr to avoid stdout pollution in MCP context
+      process.stderr.write(`[OsTicketApiClient] Warning: Failed to load ticket statuses from API: ${error}\n`);
     }
   }
 
