@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  osTicket MCP Server Evaluation Tests
+
+  These questions test the MCP server's ability to:
+  1. Retrieve and display ticket information
+  2. Search and filter tickets effectively
+  3. Work with subticket relationships
+  4. Provide accurate statistics
+
+  IMPORTANT: Answers must be verified against your specific osTicket instance.
+  The expected answers below are placeholders that need to be replaced with
+  actual values from your osTicket data.
+
+  To run: python scripts/evaluation.py -t stdio -c node -a dist/index.js evaluation.xml
+-->
+<evaluation>
+  <!-- Question 1: Basic ticket retrieval with specific field extraction -->
+  <qa_pair>
+    <question>Using the osTicket MCP server, find ticket number 680284 and tell me who created it. Provide the creator's full name.</question>
+    <answer>PLACEHOLDER_CREATOR_NAME</answer>
+    <!-- Replace with actual creator name from your osTicket instance -->
+  </qa_pair>
+
+  <!-- Question 2: Statistics aggregation -->
+  <qa_pair>
+    <question>What is the total number of open tickets in osTicket? Provide just the number.</question>
+    <answer>PLACEHOLDER_OPEN_COUNT</answer>
+    <!-- Replace with actual count from osticket_get_stats -->
+  </qa_pair>
+
+  <!-- Question 3: Search with filtering - requires understanding results -->
+  <qa_pair>
+    <question>Search for tickets containing "login" in the subject. How many tickets were found? Provide the count as a number.</question>
+    <answer>PLACEHOLDER_LOGIN_COUNT</answer>
+    <!-- Replace with actual search result count -->
+  </qa_pair>
+
+  <!-- Question 4: Multi-hop question - subticket relationships -->
+  <qa_pair>
+    <question>Find ticket 680300 and check if it has any child tickets (subtickets). How many child tickets does it have? If none, answer 0.</question>
+    <answer>PLACEHOLDER_CHILD_COUNT</answer>
+    <!-- Replace with actual count. Requires osticket_get_child_tickets -->
+  </qa_pair>
+
+  <!-- Question 5: Ticket status extraction -->
+  <qa_pair>
+    <question>What is the current status of ticket number 680284? Provide the exact status name (e.g., "Open", "Closed", "Resolved").</question>
+    <answer>PLACEHOLDER_STATUS</answer>
+    <!-- Replace with actual status from osticket_get_ticket -->
+  </qa_pair>
+
+  <!-- Question 6: Department identification -->
+  <qa_pair>
+    <question>Which department is ticket 680284 assigned to? Provide the department name.</question>
+    <answer>PLACEHOLDER_DEPARTMENT</answer>
+    <!-- Replace with actual department name -->
+  </qa_pair>
+
+  <!-- Question 7: Pagination test -->
+  <qa_pair>
+    <question>List all open tickets with a limit of 5. Are there more tickets available beyond these 5? Answer "Yes" or "No".</question>
+    <answer>PLACEHOLDER_HAS_MORE</answer>
+    <!-- Check has_more field in response -->
+  </qa_pair>
+
+  <!-- Question 8: Parent-child relationship -->
+  <qa_pair>
+    <question>Does ticket 680350 have a parent ticket? If yes, provide the parent ticket number. If no, answer "No parent".</question>
+    <answer>PLACEHOLDER_PARENT</answer>
+    <!-- Requires osticket_get_parent_ticket -->
+  </qa_pair>
+
+  <!-- Question 9: Statistics - overdue tickets -->
+  <qa_pair>
+    <question>How many tickets are currently overdue according to the statistics? Provide just the number.</question>
+    <answer>PLACEHOLDER_OVERDUE</answer>
+    <!-- Check overdue field in osticket_get_stats response -->
+  </qa_pair>
+
+  <!-- Question 10: Ticket subject extraction -->
+  <qa_pair>
+    <question>What is the subject line of ticket number 680284? Provide the exact subject text.</question>
+    <answer>PLACEHOLDER_SUBJECT</answer>
+    <!-- Extract subject from osticket_get_ticket response -->
+  </qa_pair>
+</evaluation>
