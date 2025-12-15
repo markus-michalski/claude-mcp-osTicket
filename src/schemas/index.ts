@@ -192,7 +192,8 @@ export const UpdateTicketInputSchema = z.object({
     .describe('Format for note: markdown (default), html, or text')
 }).strict().refine(
   data => {
-    const { number, ...rest } = data;
+    // Exclude 'number' (required) and check if at least one other field is set
+    const { number: _number, ...rest } = data;
     return Object.values(rest).some(v => v !== undefined);
   },
   { message: 'At least one field must be provided for update besides ticket number' }
