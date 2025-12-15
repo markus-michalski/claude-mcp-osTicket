@@ -11,6 +11,18 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [2.0.0] - 2025-12-15
+
+### Changed
+- refactor!: Implement MCP best practices architecture
+
+### Fixed
+- Reset version to 1.2.0 for correct release versioning
+- Rename unused variable to satisfy ESLint no-unused-vars rule
+
+
+---
+
 ## [1.2.0] - 2025-12-10
 
 ### Added
@@ -154,4 +166,4 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
-[Unreleased]: https://github.com/markus-michalski/claude-mcp-osTicket/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/markus-michalski/claude-mcp-osTicket/compare/v2.0.0...HEAD
