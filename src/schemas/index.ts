@@ -70,13 +70,19 @@ export const PaginationSchema = z.object({
 /**
  * osticket_get_ticket - Get a specific ticket with all messages
  */
-export const GetTicketInputSchema = z.object({
+const GetTicketInputSchemaBase = z.object({
   id: TicketIdSchema.optional(),
   number: TicketNumberSchema.optional()
-}).strict().refine(
+}).strict();
+
+// Schema with refinement for runtime validation
+export const GetTicketInputSchema = GetTicketInputSchemaBase.refine(
   data => data.id !== undefined || data.number !== undefined,
   { message: 'Either id or number parameter is required' }
 );
+
+// Shape for MCP SDK registration (without refinement)
+export const GetTicketInputSchemaShape = GetTicketInputSchemaBase;
 
 export type GetTicketInput = z.infer<typeof GetTicketInputSchema>;
 
@@ -159,7 +165,7 @@ export type CreateTicketInput = z.infer<typeof CreateTicketInputSchema>;
 /**
  * osticket_update_ticket - Update an existing ticket
  */
-export const UpdateTicketInputSchema = z.object({
+const UpdateTicketInputSchemaBase = z.object({
   number: TicketNumberSchema,
   departmentId: z.union([z.string(), z.number()])
     .optional()
@@ -190,7 +196,10 @@ export const UpdateTicketInputSchema = z.object({
   noteFormat: z.nativeEnum(NoteFormat)
     .default(NoteFormat.MARKDOWN)
     .describe('Format for note: markdown (default), html, or text')
-}).strict().refine(
+}).strict();
+
+// Schema with refinement for runtime validation
+export const UpdateTicketInputSchema = UpdateTicketInputSchemaBase.refine(
   data => {
     // Exclude 'number' (required) and check if at least one other field is set
     const { number: _number, ...rest } = data;
@@ -198,6 +207,9 @@ export const UpdateTicketInputSchema = z.object({
   },
   { message: 'At least one field must be provided for update besides ticket number' }
 );
+
+// Shape for MCP SDK registration (without refinement)
+export const UpdateTicketInputSchemaShape = UpdateTicketInputSchemaBase;
 
 export type UpdateTicketInput = z.infer<typeof UpdateTicketInputSchema>;
 

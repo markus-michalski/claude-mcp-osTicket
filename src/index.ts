@@ -22,12 +22,12 @@ import { OsTicketApiClient } from './infrastructure/http/OsTicketApiClient.js';
 
 // Schemas
 import {
-  GetTicketInputSchema,
+  GetTicketInputSchemaShape,
   ListTicketsInputSchema,
   SearchTicketsInputSchema,
   GetStatsInputSchema,
   CreateTicketInputSchema,
-  UpdateTicketInputSchema,
+  UpdateTicketInputSchemaShape,
   DeleteTicketInputSchema,
   GetParentTicketInputSchema,
   GetChildTicketsInputSchema,
@@ -167,7 +167,7 @@ Examples:
 Error Handling:
   - Returns "Resource not found" if ticket doesn't exist
   - Returns "Permission denied" if API key lacks read access`,
-    inputSchema: GetTicketInputSchema,
+    inputSchema: GetTicketInputSchemaShape.shape,
     annotations: {
       readOnlyHint: true,
       destructiveHint: false,
@@ -224,7 +224,7 @@ Examples:
   - List open tickets: { "status": "open", "limit": 10 }
   - Paginate: { "offset": 20, "limit": 20 }
   - Filter by department: { "departmentId": 5 }`,
-    inputSchema: ListTicketsInputSchema,
+    inputSchema: ListTicketsInputSchema.shape,
     annotations: {
       readOnlyHint: true,
       destructiveHint: false,
@@ -301,7 +301,7 @@ Examples:
 Tips:
   - Use specific keywords for better results
   - Try ticket numbers for exact matches`,
-    inputSchema: SearchTicketsInputSchema,
+    inputSchema: SearchTicketsInputSchema.shape,
     annotations: {
       readOnlyHint: true,
       destructiveHint: false,
@@ -366,7 +366,7 @@ Use cases:
   - Dashboard overview
   - Monitoring ticket volume
   - Identifying overdue tickets`,
-    inputSchema: GetStatsInputSchema,
+    inputSchema: GetStatsInputSchema.shape,
     annotations: {
       readOnlyHint: true,
       destructiveHint: false,
@@ -422,7 +422,7 @@ Returns:
 Examples:
   - Basic: { "subject": "Login issue", "message": "Cannot login to portal" }
   - With project: { "subject": "Bug", "message": "Error...", "projectContext": "invoice-management" }`,
-    inputSchema: CreateTicketInputSchema,
+    inputSchema: CreateTicketInputSchema.shape,
     annotations: {
       readOnlyHint: false,
       destructiveHint: false,
@@ -523,7 +523,7 @@ Examples:
   - Close ticket: { "number": "680284", "statusId": "Closed" }
   - Add note: { "number": "680284", "note": "Investigated, working on fix" }
   - Assign: { "number": "680284", "staffId": 5 }`,
-    inputSchema: UpdateTicketInputSchema,
+    inputSchema: UpdateTicketInputSchemaShape.shape,
     annotations: {
       readOnlyHint: false,
       destructiveHint: false,
@@ -590,7 +590,7 @@ Returns:
 Use with caution:
   - Consider closing instead of deleting to preserve history
   - Verify ticket number before deletion`,
-    inputSchema: DeleteTicketInputSchema,
+    inputSchema: DeleteTicketInputSchema.shape,
     annotations: {
       readOnlyHint: false,
       destructiveHint: true,
@@ -645,7 +645,7 @@ Returns:
 
 Error Handling:
   - Returns HTTP 501 if Subticket Manager plugin is not installed`,
-    inputSchema: GetParentTicketInputSchema,
+    inputSchema: GetParentTicketInputSchema.shape,
     annotations: {
       readOnlyHint: true,
       destructiveHint: false,
@@ -703,7 +703,7 @@ Returns:
 
 Error Handling:
   - Returns HTTP 501 if Subticket Manager plugin is not installed`,
-    inputSchema: GetChildTicketsInputSchema,
+    inputSchema: GetChildTicketsInputSchema.shape,
     annotations: {
       readOnlyHint: true,
       destructiveHint: false,
@@ -764,7 +764,7 @@ Constraints:
   - Child ticket must not already have a parent
   - Cannot link a ticket to itself
   - Both tickets must exist`,
-    inputSchema: CreateSubticketLinkInputSchema,
+    inputSchema: CreateSubticketLinkInputSchema.shape,
     annotations: {
       readOnlyHint: false,
       destructiveHint: false,
@@ -821,7 +821,7 @@ Returns:
 Error Handling:
   - Returns error if ticket has no parent
   - Returns HTTP 501 if plugin not installed`,
-    inputSchema: UnlinkSubticketInputSchema,
+    inputSchema: UnlinkSubticketInputSchema.shape,
     annotations: {
       readOnlyHint: false,
       destructiveHint: false,
