@@ -182,6 +182,10 @@ const UpdateTicketInputSchemaBase = z.object({
   slaId: z.union([z.string(), z.number()])
     .optional()
     .describe('SLA Plan ID or name'),
+  dueDate: z.string()
+    .nullable()
+    .optional()
+    .describe('Due date in ISO 8601 format (e.g., "2025-01-31" or "2025-01-31T17:30:00"). Set to null to clear.'),
   parentTicketNumber: z.string()
     .optional()
     .describe('Parent ticket number (makes this a subticket)'),

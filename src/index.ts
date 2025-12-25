@@ -495,7 +495,7 @@ server.registerTool(
   'osticket_update_ticket',
   {
     title: 'Update osTicket Ticket',
-    description: `Update an existing ticket's properties (department, status, assignee, etc.).
+    description: `Update an existing ticket's properties (department, status, assignee, due date, etc.).
 
 Can update one or more properties in a single call. Supports adding internal notes
 that are visible to staff only.
@@ -507,6 +507,7 @@ Args:
   - topicId (string|number, optional): Help Topic ID or name
   - staffId (string|number, optional): Staff ID or username to assign
   - slaId (string|number, optional): SLA Plan ID or name
+  - dueDate (string|null, optional): Due date in ISO 8601 format (e.g., "2025-01-31"). Set to null to clear.
   - parentTicketNumber (string, optional): Make this a subticket of another ticket
   - note (string, optional): Add internal note (staff only)
   - noteTitle (string, optional): Title for note (default: "API Update")
@@ -521,6 +522,7 @@ Returns:
 
 Examples:
   - Close ticket: { "number": "680284", "statusId": "Closed" }
+  - Set due date: { "number": "680284", "dueDate": "2025-01-31" }
   - Add note: { "number": "680284", "note": "Investigated, working on fix" }
   - Assign: { "number": "680284", "staffId": 5 }`,
     inputSchema: UpdateTicketInputSchemaShape.shape,
@@ -540,6 +542,7 @@ Examples:
       if (params.topicId !== undefined) updates.topicId = params.topicId;
       if (params.staffId !== undefined) updates.staffId = params.staffId;
       if (params.slaId !== undefined) updates.slaId = params.slaId;
+      if (params.dueDate !== undefined) updates.dueDate = params.dueDate;
       if (params.parentTicketNumber !== undefined) updates.parentTicketNumber = params.parentTicketNumber;
       if (params.note !== undefined) updates.note = params.note;
       if (params.noteTitle !== undefined) updates.noteTitle = params.noteTitle;
