@@ -291,6 +291,7 @@ export class OsTicketApiClient {
     topicId?: string | number;
     staffId?: string | number;
     slaId?: string | number;
+    dueDate?: string | null;
     parentTicketNumber?: string;
     note?: string;
     noteTitle?: string;
@@ -324,6 +325,9 @@ export class OsTicketApiClient {
     if (updates.note !== undefined) resolvedUpdates.note = updates.note;
     if (updates.noteTitle !== undefined) resolvedUpdates.noteTitle = updates.noteTitle;
     if (updates.noteFormat !== undefined) resolvedUpdates.noteFormat = updates.noteFormat;
+
+    // dueDate: pass through as-is (null clears, string sets)
+    if (updates.dueDate !== undefined) resolvedUpdates.dueDate = updates.dueDate;
 
     const url = new URL(`/api/tickets-update.php/${number}.json`, this.apiUrl);
     return await this.makeRequest('PATCH', url.toString(), resolvedUpdates);
