@@ -11,6 +11,13 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [2.2.0] - 2026-01-05
+
+
+
+
+---
+
 ## [2.1.0] - 2025-12-25
 
 ### Added
@@ -181,4 +188,4 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
-[Unreleased]: https://github.com/markus-michalski/claude-mcp-osTicket/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/markus-michalski/claude-mcp-osTicket/compare/v2.2.0...HEAD
