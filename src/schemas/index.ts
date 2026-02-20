@@ -89,8 +89,10 @@ export type GetTicketInput = z.infer<typeof GetTicketInputSchema>;
 /**
  * osticket_list_tickets - List tickets with filters
  */
+export const TicketStatusEnum = z.enum(['open', 'closed', 'resolved', 'archived']);
+
 export const ListTicketsInputSchema = z.object({
-  status: z.string()
+  status: TicketStatusEnum
     .optional()
     .describe('Filter by status (open, closed, resolved, archived)'),
   departmentId: z.number()
@@ -167,26 +169,28 @@ export type CreateTicketInput = z.infer<typeof CreateTicketInputSchema>;
  */
 const UpdateTicketInputSchemaBase = z.object({
   number: TicketNumberSchema,
-  departmentId: z.union([z.string(), z.number()])
+  departmentId: z.union([z.string().min(1).max(255), z.number()])
     .optional()
     .describe('Department ID or name'),
-  statusId: z.union([z.string(), z.number()])
+  statusId: z.union([z.string().min(1).max(255), z.number()])
     .optional()
     .describe('Status ID or name (e.g., "Open", "Closed")'),
-  topicId: z.union([z.string(), z.number()])
+  topicId: z.union([z.string().min(1).max(255), z.number()])
     .optional()
     .describe('Help Topic ID or name'),
-  staffId: z.union([z.string(), z.number()])
+  staffId: z.union([z.string().min(1).max(255), z.number()])
     .optional()
     .describe('Staff ID or username to assign ticket'),
-  slaId: z.union([z.string(), z.number()])
+  slaId: z.union([z.string().min(1).max(255), z.number()])
     .optional()
     .describe('SLA Plan ID or name'),
   dueDate: z.string()
+    .regex(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2})?$/, 'Must be ISO 8601 format (YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS)')
     .nullable()
     .optional()
     .describe('Due date in ISO 8601 format (e.g., "2025-01-31" or "2025-01-31T17:30:00"). Set to null to clear.'),
   parentTicketNumber: z.string()
+    .regex(/^\d+$/, 'Parent ticket number must contain only digits')
     .optional()
     .describe('Parent ticket number (makes this a subticket)'),
   note: z.string()
