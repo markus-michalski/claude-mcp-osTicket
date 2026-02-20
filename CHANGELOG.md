@@ -9,8 +9,32 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
----
+### Added
+- Nothing yet
 
+### Changed
+- Nothing yet
+
+### Deprecated
+- Nothing yet
+
+### Removed
+- Nothing yet
+
+### Fixed
+- Nothing yet
+
+### Security
+- Nothing yet
+
+## [2.2.1] - 2026-02-20
+
+### Changed
+- removed md file
+
+### Fixed
+- comprehensive security audit fixes and code improvements
+- implement all 20 security audit findings
 ## [2.2.0] - 2026-01-05
 
 
@@ -188,4 +212,5 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
-[Unreleased]: https://github.com/markus-michalski/claude-mcp-osTicket/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/markus-michalski/claude-mcp-osTicket/compare/v2.2.1...HEAD
+[2.2.1]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v2.2.1
