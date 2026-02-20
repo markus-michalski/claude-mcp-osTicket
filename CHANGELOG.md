@@ -27,6 +27,10 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 ### Security
 - Nothing yet
 
+## [2.2.2] - 2026-02-20
+
+### Changed
+- upgrade eslint to v10 and fix audit warnings
 ## [2.2.1] - 2026-02-20
 
 ### Changed
@@ -212,5 +216,6 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
-[Unreleased]: https://github.com/markus-michalski/claude-mcp-osTicket/compare/v2.2.1...HEAD
+[Unreleased]: https://github.com/markus-michalski/claude-mcp-osTicket/compare/v2.2.2...HEAD
 [2.2.1]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v2.2.1
+[2.2.2]: https://github.com/markus-michalski/claude-mcp-osTicket/releases/tag/v2.2.2
