@@ -88,7 +88,7 @@ export class Configuration {
     } catch (e) {
       // Re-throw our own HTTPS enforcement error
       if (e instanceof Error && e.message.includes('must use HTTPS')) throw e;
-      throw new Error(`Invalid OSTICKET_API_URL: ${this.osTicketApiUrl}`);
+      throw new Error(`Invalid OSTICKET_API_URL: ${this.osTicketApiUrl}`, { cause: e });
     }
 
     // Warn when TLS certificate verification is disabled
