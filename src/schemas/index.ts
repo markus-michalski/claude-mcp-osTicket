@@ -17,18 +17,8 @@ export { CHARACTER_LIMIT, DEFAULT_LIMIT, MAX_LIMIT };
 // Enums
 // ============================================================================
 
-export enum ResponseFormat {
-  MARKDOWN = 'markdown',
-  JSON = 'json'
-}
-
-export enum NoteFormat {
-  MARKDOWN = 'markdown',
-  HTML = 'html',
-  TEXT = 'text'
-}
-
-export enum TicketFormat {
+/** Shared content format for ticket messages and notes */
+export enum ContentFormat {
   MARKDOWN = 'markdown',
   HTML = 'html',
   TEXT = 'text'
@@ -152,8 +142,8 @@ export const CreateTicketInputSchema = z.object({
     .min(1, 'Message is required')
     .max(65535, 'Message must not exceed 65535 characters')
     .describe('Ticket message/description (supports Markdown)'),
-  format: z.nativeEnum(TicketFormat)
-    .default(TicketFormat.MARKDOWN)
+  format: z.nativeEnum(ContentFormat)
+    .default(ContentFormat.MARKDOWN)
     .describe('Message format: markdown (default), html, or text'),
   topicId: z.number()
     .int()
@@ -194,6 +184,7 @@ const UpdateTicketInputSchemaBase = z.object({
     .optional()
     .describe('Parent ticket number (makes this a subticket)'),
   note: z.string()
+    .min(1, 'Note cannot be empty')
     .max(65535)
     .optional()
     .describe('Internal note (staff only, not visible to user)'),
@@ -201,8 +192,8 @@ const UpdateTicketInputSchemaBase = z.object({
     .max(100)
     .optional()
     .describe('Title for internal note (default: "API Update")'),
-  noteFormat: z.nativeEnum(NoteFormat)
-    .default(NoteFormat.MARKDOWN)
+  noteFormat: z.nativeEnum(ContentFormat)
+    .default(ContentFormat.MARKDOWN)
     .describe('Format for note: markdown (default), html, or text')
 }).strict();
 

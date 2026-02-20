@@ -23,8 +23,13 @@ function getVersionFromPackageJson(): string {
   try {
     const currentDir = dirname(fileURLToPath(import.meta.url));
     const packageJsonPath = join(currentDir, '..', 'package.json');
-    const pkg = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
-    return pkg.version || '0.0.0';
+    const pkg = JSON.parse(readFileSync(packageJsonPath, 'utf-8')) as Record<string, unknown>;
+    const version = pkg.version;
+    // Validate semver format before using
+    if (typeof version === 'string' && /^\d+\.\d+\.\d+/.test(version)) {
+      return version;
+    }
+    return '0.0.0';
   } catch {
     return '0.0.0';
   }
