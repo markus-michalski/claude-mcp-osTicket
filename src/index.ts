@@ -19,15 +19,18 @@ import { Configuration } from './config/Configuration.js';
 // Infrastructure
 import { Logger } from './infrastructure/logging/Logger.js';
 import { OsTicketApiClient } from './infrastructure/http/OsTicketApiClient.js';
+import { OsTicketApiError } from './infrastructure/errors/OsTicketApiError.js';
 
 // Schemas
 import {
   GetTicketInputSchemaShape,
+  GetTicketInputSchema,
   ListTicketsInputSchema,
   SearchTicketsInputSchema,
   GetStatsInputSchema,
   CreateTicketInputSchema,
   UpdateTicketInputSchemaShape,
+  UpdateTicketInputSchema,
   DeleteTicketInputSchema,
   GetParentTicketInputSchema,
   GetChildTicketsInputSchema,
@@ -71,7 +74,8 @@ if (!config.osTicketApiKey || !config.osTicketApiUrl) {
 const apiClient = new OsTicketApiClient(
   config.osTicketApiUrl,
   config.osTicketApiKey,
-  config.osTicketApiRejectUnauthorized
+  config.osTicketApiRejectUnauthorized,
+  logger
 );
 
 // Create MCP server instance
@@ -85,24 +89,29 @@ const server = new McpServer({
 // ============================================================================
 
 /**
- * Format error message with actionable suggestions
+ * Format error message with actionable suggestions based on error type
  */
 function formatError(error: unknown, context: string): string {
+  // Use structured status code matching for OsTicketApiError
+  if (error instanceof OsTicketApiError) {
+    const suggestions: Record<number, string> = {
+      401: 'Authentication failed. Check OSTICKET_API_KEY is valid and active.',
+      403: 'Permission denied. Ensure the API key has required permissions in osTicket Admin Panel.',
+      404: 'Resource not found. Verify the ticket number is correct and exists in osTicket.',
+      501: 'Feature not available. The Subticket Manager plugin may not be installed.',
+    };
+
+    const suggestion = suggestions[error.statusCode];
+    if (suggestion) {
+      return `Error: ${context} - ${suggestion}`;
+    }
+
+    return `Error: ${context} - ${error.message}`;
+  }
+
+  // Fallback for non-API errors (timeouts, network issues)
   const message = error instanceof Error ? error.message : String(error);
 
-  // Provide actionable suggestions based on error type
-  if (message.includes('404') || message.includes('not found')) {
-    return `Error: ${context} - Resource not found. Verify the ticket number is correct and exists in osTicket.`;
-  }
-  if (message.includes('401') || message.includes('Unauthorized')) {
-    return `Error: ${context} - Authentication failed. Check OSTICKET_API_KEY is valid and active.`;
-  }
-  if (message.includes('403') || message.includes('Forbidden')) {
-    return `Error: ${context} - Permission denied. Ensure the API key has required permissions in osTicket Admin Panel.`;
-  }
-  if (message.includes('501') || message.includes('Not Implemented')) {
-    return `Error: ${context} - Feature not available. The Subticket Manager plugin may not be installed.`;
-  }
   if (message.includes('timeout')) {
     return `Error: ${context} - Request timed out. Try again or check osTicket server status.`;
   }
@@ -177,7 +186,9 @@ Error Handling:
   },
   async (params: GetTicketInput) => {
     try {
-      const ticketNumber = params.number || String(params.id);
+      // Runtime validation with refinement (at least id or number required)
+      const validated = GetTicketInputSchema.parse(params);
+      const ticketNumber = validated.number || String(validated.id);
       const ticket = await apiClient.getTicket(ticketNumber);
 
       return {
@@ -535,20 +546,22 @@ Examples:
   },
   async (params: UpdateTicketInput) => {
     try {
+      // Runtime validation with refinement (at least one update field required)
+      const validated = UpdateTicketInputSchema.parse(params);
       const updates: Record<string, unknown> = {};
 
-      if (params.departmentId !== undefined) updates.departmentId = params.departmentId;
-      if (params.statusId !== undefined) updates.statusId = params.statusId;
-      if (params.topicId !== undefined) updates.topicId = params.topicId;
-      if (params.staffId !== undefined) updates.staffId = params.staffId;
-      if (params.slaId !== undefined) updates.slaId = params.slaId;
-      if (params.dueDate !== undefined) updates.dueDate = params.dueDate;
-      if (params.parentTicketNumber !== undefined) updates.parentTicketNumber = params.parentTicketNumber;
-      if (params.note !== undefined) updates.note = params.note;
-      if (params.noteTitle !== undefined) updates.noteTitle = params.noteTitle;
-      if (params.noteFormat !== undefined) updates.noteFormat = params.noteFormat;
+      if (validated.departmentId !== undefined) updates.departmentId = validated.departmentId;
+      if (validated.statusId !== undefined) updates.statusId = validated.statusId;
+      if (validated.topicId !== undefined) updates.topicId = validated.topicId;
+      if (validated.staffId !== undefined) updates.staffId = validated.staffId;
+      if (validated.slaId !== undefined) updates.slaId = validated.slaId;
+      if (validated.dueDate !== undefined) updates.dueDate = validated.dueDate;
+      if (validated.parentTicketNumber !== undefined) updates.parentTicketNumber = validated.parentTicketNumber;
+      if (validated.note !== undefined) updates.note = validated.note;
+      if (validated.noteTitle !== undefined) updates.noteTitle = validated.noteTitle;
+      if (validated.noteFormat !== undefined) updates.noteFormat = validated.noteFormat;
 
-      const result = await apiClient.updateTicket(params.number, updates);
+      const result = await apiClient.updateTicket(validated.number, updates);
 
       return {
         content: [{
@@ -556,7 +569,7 @@ Examples:
           text: JSON.stringify({
             success: true,
             ticket: result,
-            message: `Ticket ${params.number} updated successfully`
+            message: `Ticket ${validated.number} updated successfully`
           }, null, 2)
         }]
       };

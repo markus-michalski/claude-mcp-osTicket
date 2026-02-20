@@ -34,12 +34,17 @@ export class Configuration {
     // osTicket API Configuration (REQUIRED)
     this.osTicketApiUrl = this.getRequired('OSTICKET_API_URL');
     this.osTicketApiKey = this.getRequired('OSTICKET_API_KEY');
-    this.osTicketApiRejectUnauthorized = this.get('OSTICKET_API_REJECT_UNAUTHORIZED', 'false') === 'true';
+    this.osTicketApiRejectUnauthorized = this.get('OSTICKET_API_REJECT_UNAUTHORIZED', 'true') === 'true';
 
     // Default User for Ticket Creation (optional)
     this.osTicketDefaultName = this.get('OSTICKET_DEFAULT_NAME', '');
     this.osTicketDefaultEmail = this.get('OSTICKET_DEFAULT_EMAIL', '');
-    this.osTicketDefaultTopicId = parseInt(this.get('OSTICKET_DEFAULT_TOPIC_ID', '0'));
+    const topicIdRaw = this.get('OSTICKET_DEFAULT_TOPIC_ID', '0');
+    const topicIdParsed = parseInt(topicIdRaw, 10);
+    if (isNaN(topicIdParsed)) {
+      throw new Error(`Invalid OSTICKET_DEFAULT_TOPIC_ID: "${topicIdRaw}" is not a valid number`);
+    }
+    this.osTicketDefaultTopicId = topicIdParsed;
 
     // Logging
     this.logLevel = this.get('LOG_LEVEL', 'info');
@@ -82,6 +87,11 @@ export class Configuration {
       throw new Error('OSTICKET_API_KEY cannot be empty');
     }
 
+    // Defense-in-depth: prevent CRLF injection in API key (header injection)
+    if (/[\r\n]/.test(this.osTicketApiKey)) {
+      throw new Error('OSTICKET_API_KEY must not contain newline characters');
+    }
+
     // Validate default email format if provided
     if (this.osTicketDefaultEmail && !this.isValidEmail(this.osTicketDefaultEmail)) {
       throw new Error(`Invalid OSTICKET_DEFAULT_EMAIL format: ${this.osTicketDefaultEmail}`);
@@ -100,12 +110,14 @@ export class Configuration {
    * Log configuration (without sensitive data)
    */
   public logSummary(): void {
-    console.log('[Config] Loaded configuration:');
-    console.log(`  API URL: ${this.osTicketApiUrl}`);
-    console.log(`  API Key: ${this.osTicketApiKey ? '***' + this.osTicketApiKey.slice(-4) : 'not set'}`);
-    console.log(`  Reject Unauthorized SSL: ${this.osTicketApiRejectUnauthorized}`);
-    console.log(`  Default User: ${this.osTicketDefaultName ? this.osTicketDefaultName : 'not set'} <${this.osTicketDefaultEmail ? this.osTicketDefaultEmail : 'not set'}>`);
-    console.log(`  Default Topic ID: ${this.osTicketDefaultTopicId || 'not set'}`);
-    console.log(`  Log Level: ${this.logLevel}`);
+    // Use stderr to avoid corrupting MCP JSON-RPC transport on stdout
+    const log = (msg: string) => process.stderr.write(msg + '\n');
+    log('[Config] Loaded configuration:');
+    log(`  API URL: ${this.osTicketApiUrl}`);
+    log(`  API Key: ${this.osTicketApiKey ? '[SET]' : '[NOT SET]'}`);
+    log(`  Reject Unauthorized SSL: ${this.osTicketApiRejectUnauthorized}`);
+    log(`  Default User: ${this.osTicketDefaultName || '[NOT SET]'} <${this.osTicketDefaultEmail || '[NOT SET]'}>`);
+    log(`  Default Topic ID: ${this.osTicketDefaultTopicId || '[NOT SET]'}`);
+    log(`  Log Level: ${this.logLevel}`);
   }
 }
