@@ -75,11 +75,26 @@ export class Configuration {
    * Validate configuration
    */
   private validate(): void {
-    // Validate API URL format
+    // Validate API URL format and enforce HTTPS
     try {
-      new URL(this.osTicketApiUrl);
-    } catch {
+      const parsedUrl = new URL(this.osTicketApiUrl);
+      const allowHttp = process.env.ALLOW_HTTP === 'true';
+      if (parsedUrl.protocol === 'http:' && !allowHttp) {
+        throw new Error(
+          'OSTICKET_API_URL must use HTTPS to protect API credentials in transit. ' +
+          'Set ALLOW_HTTP=true only for local development.'
+        );
+      }
+    } catch (e) {
+      // Re-throw our own HTTPS enforcement error
+      if (e instanceof Error && e.message.includes('must use HTTPS')) throw e;
       throw new Error(`Invalid OSTICKET_API_URL: ${this.osTicketApiUrl}`);
+    }
+
+    // Warn when TLS certificate verification is disabled
+    if (!this.osTicketApiRejectUnauthorized) {
+      const msg = 'WARNING: SSL certificate verification is DISABLED (OSTICKET_API_REJECT_UNAUTHORIZED=false). This allows MITM attacks.';
+      process.stderr.write(`[Config] ${msg}\n`);
     }
 
     // Validate API Key is not empty

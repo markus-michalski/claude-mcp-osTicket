@@ -17,7 +17,7 @@ import { join } from 'path';
 import { Configuration } from './config/Configuration.js';
 
 // Infrastructure
-import { Logger } from './infrastructure/logging/Logger.js';
+import { Logger, type LogLevel } from './infrastructure/logging/Logger.js';
 import { OsTicketApiClient } from './infrastructure/http/OsTicketApiClient.js';
 import { OsTicketApiError } from './infrastructure/errors/OsTicketApiError.js';
 
@@ -58,10 +58,10 @@ import { SERVER_NAME, SERVER_VERSION } from './constants.js';
 
 const config = new Configuration();
 
-// Initialize logger
+// Initialize logger (use config.logLevel as single source of truth)
 const logFilePath = join(homedir(), '.claude', 'mcp-servers', 'osticket', 'logs', 'server.log');
 const logger = new Logger(
-  (process.env.LOG_LEVEL as 'debug' | 'info' | 'warn' | 'error') || 'info',
+  config.logLevel as LogLevel,
   logFilePath
 );
 
@@ -109,37 +109,54 @@ function formatError(error: unknown, context: string): string {
     return `Error: ${context} - ${error.message}`;
   }
 
-  // Fallback for non-API errors (timeouts, network issues)
-  const message = error instanceof Error ? error.message : String(error);
+  // Sanitize non-API errors to prevent leaking internal details (hostnames, IPs, ports)
+  if (error instanceof Error) {
+    const msg = error.message;
 
-  if (message.includes('timeout')) {
-    return `Error: ${context} - Request timed out. Try again or check osTicket server status.`;
+    if (msg.includes('timeout') || msg.includes('ETIMEDOUT')) {
+      return `Error: ${context} - Request timed out. Check osTicket server status.`;
+    }
+    if (msg.includes('ECONNREFUSED') || msg.includes('ECONNRESET')) {
+      return `Error: ${context} - Cannot connect to osTicket server.`;
+    }
+    if (msg.includes('ENOTFOUND')) {
+      return `Error: ${context} - osTicket host not reachable. Check OSTICKET_API_URL.`;
+    }
+    if (msg.includes('EPROTO') || msg.includes('ERR_TLS')) {
+      return `Error: ${context} - TLS/SSL connection error. Check certificate configuration.`;
+    }
+    if (msg.includes('Invalid ticket number')) {
+      return `Error: ${context} - ${msg}`;
+    }
+
+    // Fallback: do NOT expose raw error messages that may contain internal details
+    return `Error: ${context} - Unexpected error occurred. Check server logs for details.`;
   }
 
-  return `Error: ${context} - ${message}`;
+  return `Error: ${context} - Unknown error occurred.`;
 }
 
 /**
- * Truncate response if it exceeds character limit
+ * Truncate response if it exceeds character limit.
+ * Uses size estimation to avoid repeated JSON.stringify calls.
  */
 function truncateIfNeeded(data: unknown[], total: number): { items: unknown[]; truncated: boolean; truncationMessage?: string } {
   const json = JSON.stringify(data, null, 2);
 
-  if (json.length > CHARACTER_LIMIT) {
-    // Reduce items until under limit
-    let truncatedData = [...data];
-    while (JSON.stringify(truncatedData, null, 2).length > CHARACTER_LIMIT && truncatedData.length > 1) {
-      truncatedData = truncatedData.slice(0, Math.ceil(truncatedData.length / 2));
-    }
-
-    return {
-      items: truncatedData,
-      truncated: true,
-      truncationMessage: `Response truncated from ${data.length} to ${truncatedData.length} items (${total} total). Use 'offset' parameter to see more results.`
-    };
+  if (json.length <= CHARACTER_LIMIT) {
+    return { items: data, truncated: false };
   }
 
-  return { items: data, truncated: false };
+  // Estimate average bytes per item, calculate target count directly
+  const avgBytesPerItem = json.length / data.length;
+  const targetCount = Math.max(1, Math.floor(CHARACTER_LIMIT / avgBytesPerItem));
+  const truncatedData = data.slice(0, targetCount);
+
+  return {
+    items: truncatedData,
+    truncated: true,
+    truncationMessage: `Response truncated from ${data.length} to ${truncatedData.length} items (${total} total). Use 'offset' parameter to see more results.`
+  };
 }
 
 // ============================================================================
@@ -245,26 +262,25 @@ Examples:
   },
   async (params: ListTicketsInput) => {
     try {
-      const result = await apiClient.searchTickets({
-        status: params.status,
-        departmentId: params.departmentId,
-        limit: params.limit,
-        offset: params.offset
+      // Runtime validation with Zod defaults (limit, offset)
+      const validated = ListTicketsInputSchema.parse(params);
+
+      const tickets = await apiClient.searchTickets({
+        status: validated.status,
+        departmentId: validated.departmentId,
+        limit: validated.limit,
+        offset: validated.offset
       });
 
-      const tickets = Array.isArray(result) ? result : [];
-      const total = tickets.length + (params.offset || 0);
-
       // Check truncation
-      const { items, truncated, truncationMessage } = truncateIfNeeded(tickets, total);
+      const { items, truncated, truncationMessage } = truncateIfNeeded(tickets, tickets.length);
 
       const response = {
         tickets: items,
         count: items.length,
-        total,
-        offset: params.offset || 0,
-        has_more: tickets.length === params.limit,
-        ...(tickets.length === params.limit ? { next_offset: (params.offset || 0) + tickets.length } : {}),
+        offset: validated.offset,
+        has_more: tickets.length === validated.limit,
+        ...(tickets.length === validated.limit ? { next_offset: validated.offset + tickets.length } : {}),
         ...(truncated ? { truncated: true, truncation_message: truncationMessage } : {})
       };
 
@@ -322,12 +338,10 @@ Tips:
   },
   async (params: SearchTicketsInput) => {
     try {
-      const result = await apiClient.searchTickets({
+      const tickets = await apiClient.searchTickets({
         query: params.query,
         limit: params.limit
       });
-
-      const tickets = Array.isArray(result) ? result : [];
 
       // Check truncation
       const { items, truncated, truncationMessage } = truncateIfNeeded(tickets, tickets.length);
@@ -462,10 +476,11 @@ Examples:
         };
       }
 
-      // Build message with project context
+      // Build message with project context (sanitize control chars)
       let finalMessage = params.message;
       if (params.projectContext) {
-        finalMessage = `**Projekt:** ${params.projectContext}\n\n${finalMessage}`;
+        const sanitizedContext = params.projectContext.replace(/[\r\n\t]/g, ' ').trim();
+        finalMessage = `**Projekt:** ${sanitizedContext}\n\n${finalMessage}`;
       }
 
       const ticketNumber = await apiClient.createTicket({
@@ -892,13 +907,15 @@ async function main(): Promise<void> {
 }
 
 // Handle graceful shutdown
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   logger.info('Received SIGINT, shutting down...');
+  await server.close();
   process.exit(0);
 });
 
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   logger.info('Received SIGTERM, shutting down...');
+  await server.close();
   process.exit(0);
 });
 

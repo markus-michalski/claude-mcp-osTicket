@@ -6,6 +6,13 @@ import type {
   CreateLinkResponse,
   UnlinkResponse
 } from './types/SubticketTypes.js';
+import type {
+  TicketDetailResponse,
+  TicketSummary,
+  TicketStatsResponse,
+  UpdateTicketResponse,
+  DeleteTicketResponse
+} from './types/ApiResponseTypes.js';
 import { OsTicketApiError } from '../errors/OsTicketApiError.js';
 import { API_TIMEOUT_MS } from '../../constants.js';
 import type { Logger } from '../logging/Logger.js';
@@ -45,12 +52,28 @@ export class OsTicketApiClient {
   private readonly rejectUnauthorized: boolean;
   private readonly logger: Logger;
   private statusCache: TicketStatus[] | null = null;
+  private statusCacheExpiry: number = 0;
+  private static readonly STATUS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
   constructor(apiUrl: string, apiKey: string, rejectUnauthorized: boolean, logger: Logger) {
     this.apiUrl = apiUrl;
     this.apiKey = apiKey;
     this.rejectUnauthorized = rejectUnauthorized;
     this.logger = logger;
+
+    if (!rejectUnauthorized) {
+      this.logger.warn('SSL certificate verification disabled - INSECURE configuration');
+    }
+  }
+
+  /**
+   * Defense-in-depth: validate and encode a ticket number for safe URL inclusion
+   */
+  private safeTicketNumber(number: string, context: string): string {
+    if (!/^\d+$/.test(number) || number.length > 20) {
+      throw new Error(`Invalid ticket number in ${context}: must be 1-20 digits`);
+    }
+    return encodeURIComponent(number);
   }
 
   /**
@@ -114,9 +137,10 @@ export class OsTicketApiClient {
   /**
    * Get ticket details by number
    */
-  async getTicket(number: string): Promise<unknown> {
-    const url = new URL(`/api/tickets-get.php/${number}.json`, this.apiUrl);
-    return await this.makeRequest('GET', url.toString());
+  async getTicket(number: string): Promise<TicketDetailResponse> {
+    const safe = this.safeTicketNumber(number, 'getTicket');
+    const url = new URL(`/api/tickets-get.php/${safe}.json`, this.apiUrl);
+    return await this.makeRequest('GET', url.toString()) as TicketDetailResponse;
   }
 
   /**
@@ -128,7 +152,7 @@ export class OsTicketApiClient {
     departmentId?: string | number;
     limit?: number;
     offset?: number;
-  }): Promise<unknown> {
+  }): Promise<TicketSummary[]> {
     const url = new URL('/api/tickets-search.php', this.apiUrl);
 
     if (params.query) url.searchParams.append('query', params.query);
@@ -137,15 +161,15 @@ export class OsTicketApiClient {
     if (params.limit) url.searchParams.append('limit', String(params.limit));
     if (params.offset) url.searchParams.append('offset', String(params.offset));
 
-    return await this.makeRequest('GET', url.toString());
+    return await this.makeRequest('GET', url.toString()) as TicketSummary[];
   }
 
   /**
    * Get ticket statistics
    */
-  async getTicketStats(): Promise<unknown> {
+  async getTicketStats(): Promise<TicketStatsResponse> {
     const url = new URL('/api/tickets-stats.php', this.apiUrl);
-    return await this.makeRequest('GET', url.toString());
+    return await this.makeRequest('GET', url.toString()) as TicketStatsResponse;
   }
 
   /**
@@ -157,17 +181,21 @@ export class OsTicketApiClient {
   }
 
   /**
-   * Load ticket statuses from API and cache them
+   * Load ticket statuses from API and cache them with TTL
    */
   private async loadStatusesIfNeeded(): Promise<void> {
-    if (this.statusCache !== null) {
+    if (this.statusCache !== null && Date.now() < this.statusCacheExpiry) {
       return;
     }
 
     try {
       this.statusCache = await this.getTicketStatuses();
+      this.statusCacheExpiry = Date.now() + OsTicketApiClient.STATUS_CACHE_TTL_MS;
     } catch (error) {
-      this.statusCache = [];
+      // Keep stale cache on refresh failure, only set empty on first load
+      if (this.statusCache === null) {
+        this.statusCache = [];
+      }
       this.logger.warn(`Failed to load ticket statuses from API: ${error}`);
     }
   }
@@ -199,67 +227,16 @@ export class OsTicketApiClient {
   }
 
   /**
-   * Resolve department name to ID
+   * Resolve a string|number entity reference to a numeric ID.
+   * Name lookup is not yet supported for these entities.
    */
-  private resolveDepartmentId(departmentId: string | number): number {
-    if (typeof departmentId === 'number') {
-      return departmentId;
-    }
-
-    const parsed = parseInt(departmentId, 10);
-    if (!isNaN(parsed)) {
-      return parsed;
-    }
-
-    throw new Error(`Department name lookup not yet supported. Please use department ID (numeric). Received: "${departmentId}"`);
-  }
-
-  /**
-   * Resolve staff username to ID
-   */
-  private resolveStaffId(staffId: string | number): number {
-    if (typeof staffId === 'number') {
-      return staffId;
-    }
-
-    const parsed = parseInt(staffId, 10);
-    if (!isNaN(parsed)) {
-      return parsed;
-    }
-
-    throw new Error(`Staff username lookup not yet supported. Please use staff ID (numeric). Received: "${staffId}"`);
-  }
-
-  /**
-   * Resolve topic name to ID
-   */
-  private resolveTopicId(topicId: string | number): number {
-    if (typeof topicId === 'number') {
-      return topicId;
-    }
-
-    const parsed = parseInt(topicId, 10);
-    if (!isNaN(parsed)) {
-      return parsed;
-    }
-
-    throw new Error(`Topic name lookup not yet supported. Please use topic ID (numeric). Received: "${topicId}"`);
-  }
-
-  /**
-   * Resolve SLA name to ID
-   */
-  private resolveSlaId(slaId: string | number): number {
-    if (typeof slaId === 'number') {
-      return slaId;
-    }
-
-    const parsed = parseInt(slaId, 10);
-    if (!isNaN(parsed)) {
-      return parsed;
-    }
-
-    throw new Error(`SLA name lookup not yet supported. Please use SLA ID (numeric). Received: "${slaId}"`);
+  private resolveNumericId(value: string | number, entityName: string): number {
+    if (typeof value === 'number') return value;
+    const parsed = parseInt(value, 10);
+    if (!isNaN(parsed)) return parsed;
+    throw new Error(
+      `${entityName} name lookup not yet supported. Please use ${entityName} ID (numeric). Received: "${value}"`
+    );
   }
 
   /**
@@ -277,7 +254,7 @@ export class OsTicketApiClient {
     note?: string;
     noteTitle?: string;
     noteFormat?: string;
-  }): Promise<unknown> {
+  }): Promise<UpdateTicketResponse> {
     const resolvedUpdates: Record<string, unknown> = {};
 
     if (updates.statusId !== undefined) {
@@ -285,16 +262,16 @@ export class OsTicketApiClient {
     }
 
     if (updates.departmentId !== undefined) {
-      resolvedUpdates.departmentId = this.resolveDepartmentId(updates.departmentId);
+      resolvedUpdates.departmentId = this.resolveNumericId(updates.departmentId, 'Department');
     }
     if (updates.staffId !== undefined) {
-      resolvedUpdates.staffId = this.resolveStaffId(updates.staffId);
+      resolvedUpdates.staffId = this.resolveNumericId(updates.staffId, 'Staff');
     }
     if (updates.topicId !== undefined) {
-      resolvedUpdates.topicId = this.resolveTopicId(updates.topicId);
+      resolvedUpdates.topicId = this.resolveNumericId(updates.topicId, 'Topic');
     }
     if (updates.slaId !== undefined) {
-      resolvedUpdates.slaId = this.resolveSlaId(updates.slaId);
+      resolvedUpdates.slaId = this.resolveNumericId(updates.slaId, 'SLA');
     }
 
     if (updates.priorityId !== undefined) resolvedUpdates.priorityId = updates.priorityId;
@@ -305,23 +282,26 @@ export class OsTicketApiClient {
 
     if (updates.dueDate !== undefined) resolvedUpdates.dueDate = updates.dueDate;
 
-    const url = new URL(`/api/tickets-update.php/${number}.json`, this.apiUrl);
-    return await this.makeRequest('PATCH', url.toString(), resolvedUpdates);
+    const safe = this.safeTicketNumber(number, 'updateTicket');
+    const url = new URL(`/api/tickets-update.php/${safe}.json`, this.apiUrl);
+    return await this.makeRequest('PATCH', url.toString(), resolvedUpdates) as UpdateTicketResponse;
   }
 
   /**
    * Delete ticket
    */
-  async deleteTicket(number: string): Promise<unknown> {
-    const url = new URL(`/api/tickets-delete.php/${number}.json`, this.apiUrl);
-    return await this.makeRequest('DELETE', url.toString());
+  async deleteTicket(number: string): Promise<DeleteTicketResponse> {
+    const safe = this.safeTicketNumber(number, 'deleteTicket');
+    const url = new URL(`/api/tickets-delete.php/${safe}.json`, this.apiUrl);
+    return await this.makeRequest('DELETE', url.toString()) as DeleteTicketResponse;
   }
 
   /**
    * Get parent ticket of a subticket
    */
   async getParentTicket(childNumber: string): Promise<GetParentResponse> {
-    const url = new URL(`/api/tickets-subtickets-parent.php/${childNumber}.json`, this.apiUrl);
+    const safe = this.safeTicketNumber(childNumber, 'getParentTicket');
+    const url = new URL(`/api/tickets-subtickets-parent.php/${safe}.json`, this.apiUrl);
     return await this.makeRequest('GET', url.toString()) as GetParentResponse;
   }
 
@@ -329,7 +309,8 @@ export class OsTicketApiClient {
    * Get list of child tickets (subtickets)
    */
   async getChildTickets(parentNumber: string): Promise<GetChildrenResponse> {
-    const url = new URL(`/api/tickets-subtickets-list.php/${parentNumber}.json`, this.apiUrl);
+    const safe = this.safeTicketNumber(parentNumber, 'getChildTickets');
+    const url = new URL(`/api/tickets-subtickets-list.php/${safe}.json`, this.apiUrl);
     return await this.makeRequest('GET', url.toString()) as GetChildrenResponse;
   }
 
@@ -337,7 +318,8 @@ export class OsTicketApiClient {
    * Create subticket link
    */
   async createSubticketLink(parentNumber: string, childNumber: string | number): Promise<CreateLinkResponse> {
-    const url = new URL(`/api/tickets-subtickets-create.php/${parentNumber}.json`, this.apiUrl);
+    const safe = this.safeTicketNumber(parentNumber, 'createSubticketLink');
+    const url = new URL(`/api/tickets-subtickets-create.php/${safe}.json`, this.apiUrl);
     return await this.makeRequest('POST', url.toString(), { childId: childNumber }) as CreateLinkResponse;
   }
 
@@ -345,7 +327,8 @@ export class OsTicketApiClient {
    * Unlink subticket
    */
   async unlinkSubticket(childNumber: string): Promise<UnlinkResponse> {
-    const url = new URL(`/api/tickets-subtickets-unlink.php/${childNumber}.json`, this.apiUrl);
+    const safe = this.safeTicketNumber(childNumber, 'unlinkSubticket');
+    const url = new URL(`/api/tickets-subtickets-unlink.php/${safe}.json`, this.apiUrl);
     return await this.makeRequest('DELETE', url.toString()) as UnlinkResponse;
   }
 

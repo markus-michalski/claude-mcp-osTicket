@@ -1,5 +1,5 @@
 import { writeFileSync, appendFileSync, existsSync, mkdirSync, statSync, renameSync, unlinkSync, readdirSync } from 'fs';
-import { dirname, join } from 'path';
+import { basename, dirname, join } from 'path';
 
 /**
  * Logger for MCP Server
@@ -86,7 +86,7 @@ export class Logger {
 
     try {
       const logDir = dirname(this.logFilePath);
-      const logFileName = this.logFilePath.split('/').pop();
+      const logFileName = basename(this.logFilePath);
 
       if (!logFileName) return;
 
@@ -120,7 +120,7 @@ export class Logger {
   /**
    * Log debug message
    */
-  debug(message: string, meta?: any): void {
+  debug(message: string, meta?: LogMeta): void {
     if (!this.isDebugMode && this.logLevel !== 'debug') return;
     this.log('DEBUG', message, meta);
   }
@@ -128,7 +128,7 @@ export class Logger {
   /**
    * Log info message
    */
-  info(message: string, meta?: any): void {
+  info(message: string, meta?: LogMeta): void {
     if (!this.shouldLog('info')) return;
     this.log('INFO', message, meta);
   }
@@ -136,7 +136,7 @@ export class Logger {
   /**
    * Log warning message
    */
-  warn(message: string, meta?: any): void {
+  warn(message: string, meta?: LogMeta): void {
     if (!this.shouldLog('warn')) return;
     this.log('WARN', message, meta);
   }
@@ -144,7 +144,7 @@ export class Logger {
   /**
    * Log error message
    */
-  error(message: string, meta?: any): void {
+  error(message: string, meta?: LogMeta): void {
     if (!this.shouldLog('error')) return;
     this.log('ERROR', message, meta);
   }
@@ -152,7 +152,7 @@ export class Logger {
   /**
    * Core logging function
    */
-  private log(level: string, message: string, meta?: any): void {
+  private log(level: string, message: string, meta?: LogMeta): void {
     const timestamp = new Date().toISOString();
     const formattedMessage = this.formatMessage(timestamp, level, message, meta);
 
@@ -160,10 +160,9 @@ export class Logger {
     // Catch EPIPE errors (broken pipe when Claude Code closes connection)
     try {
       process.stderr.write(formattedMessage + '\n');
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Ignore EPIPE errors to prevent infinite exception loops
-      if (error.code !== 'EPIPE') {
-        // Only re-throw non-EPIPE errors
+      if (error instanceof Error && (error as NodeJS.ErrnoException).code !== 'EPIPE') {
         throw error;
       }
       // EPIPE means the client disconnected - silently ignore
@@ -173,7 +172,7 @@ export class Logger {
     if (this.logFilePath) {
       try {
         appendFileSync(this.logFilePath, formattedMessage + '\n');
-      } catch (error: any) {
+      } catch (_error: unknown) {
         // Don't log file errors to avoid infinite loops on EPIPE
         // Silently fail if we can't write to file
       }
@@ -183,7 +182,7 @@ export class Logger {
   /**
    * Format log message
    */
-  private formatMessage(timestamp: string, level: string, message: string, meta?: any): string {
+  private formatMessage(timestamp: string, level: string, message: string, meta?: LogMeta): string {
     let formatted = `[${timestamp}] [${level.padEnd(5)}] ${message}`;
 
     if (meta !== undefined) {
@@ -225,21 +224,24 @@ class ChildLogger {
     private prefix: string
   ) {}
 
-  debug(message: string, meta?: any): void {
+  debug(message: string, meta?: LogMeta): void {
     this.parent.debug(`[${this.prefix}] ${message}`, meta);
   }
 
-  info(message: string, meta?: any): void {
+  info(message: string, meta?: LogMeta): void {
     this.parent.info(`[${this.prefix}] ${message}`, meta);
   }
 
-  warn(message: string, meta?: any): void {
+  warn(message: string, meta?: LogMeta): void {
     this.parent.warn(`[${this.prefix}] ${message}`, meta);
   }
 
-  error(message: string, meta?: any): void {
+  error(message: string, meta?: LogMeta): void {
     this.parent.error(`[${this.prefix}] ${message}`, meta);
   }
 }
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+
+/** Structured log metadata - prevents accidental sensitive data logging */
+export type LogMeta = Record<string, unknown> | string | number | boolean | Error;
