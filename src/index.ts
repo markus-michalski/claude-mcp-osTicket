@@ -49,6 +49,9 @@ import {
   type UnlinkSubticketInput
 } from './schemas/index.js';
 
+// Utilities
+import { processAttachments } from './utils/attachments.js';
+
 // Constants
 import { SERVER_NAME, SERVER_VERSION } from './constants.js';
 
@@ -436,6 +439,7 @@ Args:
   - email (string, optional): User email (uses env default if not provided)
   - format ('markdown'|'html'|'text'): Message format (default: markdown)
   - topicId (number, optional): Help Topic ID (uses env default if not provided)
+  - attachments (array, optional): File paths to attach (max 5, each max 10 MB)
 
 Returns:
   {
@@ -446,7 +450,8 @@ Returns:
 
 Examples:
   - Basic: { "subject": "Login issue", "message": "Cannot login to portal" }
-  - With project: { "subject": "Bug", "message": "Error...", "projectContext": "invoice-management" }`,
+  - With project: { "subject": "Bug", "message": "Error...", "projectContext": "invoice-management" }
+  - With attachment: { "subject": "Audit", "message": "See attached", "attachments": [{"path": "/tmp/report.pdf"}] }`,
     inputSchema: CreateTicketInputSchema.shape,
     annotations: {
       readOnlyHint: false,
@@ -483,6 +488,15 @@ Examples:
         finalMessage = `**Projekt:** ${sanitizedContext}\n\n${finalMessage}`;
       }
 
+      // Process file attachments if provided
+      let osTicketAttachments: Array<Record<string, string>> | undefined;
+      let attachmentSummary: string | undefined;
+      if (params.attachments && params.attachments.length > 0) {
+        const result = await processAttachments(params.attachments);
+        osTicketAttachments = result.attachments;
+        attachmentSummary = result.summary;
+      }
+
       const ticketNumber = await apiClient.createTicket({
         name,
         email,
@@ -491,7 +505,8 @@ Examples:
         format: params.format,
         topicId,
         alert: false,
-        autorespond: false
+        autorespond: false,
+        attachments: osTicketAttachments
       });
 
       return {
@@ -501,7 +516,8 @@ Examples:
             success: true,
             ticketNumber,
             projectContext: params.projectContext || null,
-            message: `Ticket created successfully with number: ${ticketNumber}${topicId ? ` (topic ID ${topicId})` : ''}${params.projectContext ? ` for project "${params.projectContext}"` : ''}`
+            ...(attachmentSummary ? { attachments: attachmentSummary } : {}),
+            message: `Ticket created successfully with number: ${ticketNumber}${topicId ? ` (topic ID ${topicId})` : ''}${params.projectContext ? ` for project "${params.projectContext}"` : ''}${attachmentSummary ? `. ${attachmentSummary}` : ''}`
           }, null, 2)
         }]
       };
@@ -538,6 +554,7 @@ Args:
   - note (string, optional): Add internal note (staff only)
   - noteTitle (string, optional): Title for note (default: "API Update")
   - noteFormat ('markdown'|'html'|'text'): Note format (default: markdown)
+  - attachments (array, optional): File paths to attach to the note (max 5, each max 10 MB). Requires a note.
 
 Returns:
   {
@@ -550,7 +567,8 @@ Examples:
   - Close ticket: { "number": "680284", "statusId": "Closed" }
   - Set due date: { "number": "680284", "dueDate": "2025-01-31" }
   - Add note: { "number": "680284", "note": "Investigated, working on fix" }
-  - Assign: { "number": "680284", "staffId": 5 }`,
+  - Assign: { "number": "680284", "staffId": 5 }
+  - Note with file: { "number": "680284", "note": "See audit report", "attachments": [{"path": "/tmp/audit.pdf"}] }`,
     inputSchema: UpdateTicketInputSchemaShape.shape,
     annotations: {
       readOnlyHint: false,
@@ -563,6 +581,15 @@ Examples:
     try {
       // Runtime validation with refinement (at least one update field required)
       const validated = UpdateTicketInputSchema.parse(params);
+
+      // Attachments require a note to attach to
+      if (validated.attachments && validated.attachments.length > 0 && !validated.note) {
+        return {
+          content: [{ type: 'text', text: 'Error: Attachments require a note. Provide a "note" parameter to attach files to.' }],
+          isError: true
+        };
+      }
+
       const updates: Record<string, unknown> = {};
 
       if (validated.departmentId !== undefined) updates.departmentId = validated.departmentId;
@@ -576,6 +603,14 @@ Examples:
       if (validated.noteTitle !== undefined) updates.noteTitle = validated.noteTitle;
       if (validated.noteFormat !== undefined) updates.noteFormat = validated.noteFormat;
 
+      // Process file attachments if provided
+      let attachmentSummary: string | undefined;
+      if (validated.attachments && validated.attachments.length > 0) {
+        const result = await processAttachments(validated.attachments);
+        updates.attachments = result.attachments;
+        attachmentSummary = result.summary;
+      }
+
       const result = await apiClient.updateTicket(validated.number, updates);
 
       return {
@@ -584,7 +619,8 @@ Examples:
           text: JSON.stringify({
             success: true,
             ticket: result,
-            message: `Ticket ${validated.number} updated successfully`
+            ...(attachmentSummary ? { attachments: attachmentSummary } : {}),
+            message: `Ticket ${validated.number} updated successfully${attachmentSummary ? `. ${attachmentSummary}` : ''}`
           }, null, 2)
         }]
       };

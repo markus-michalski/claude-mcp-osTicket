@@ -16,6 +16,11 @@ export const MAX_LIMIT = 100;
 // API timeouts
 export const API_TIMEOUT_MS = 10000; // 10 seconds
 
+// Attachment limits
+export const MAX_ATTACHMENTS = 5;
+export const MAX_ATTACHMENT_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB per file
+export const MAX_TOTAL_ATTACHMENT_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB total
+
 // Server info - single source of truth from package.json
 export const SERVER_NAME = 'osticket-mcp-server';
 

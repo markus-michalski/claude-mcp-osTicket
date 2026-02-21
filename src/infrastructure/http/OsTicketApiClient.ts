@@ -89,6 +89,7 @@ export class OsTicketApiClient {
     topicId?: number;
     alert?: boolean;
     autorespond?: boolean;
+    attachments?: Array<Record<string, string>>;
   }): Promise<string> {
     const url = new URL('/api/wildcard/tickets.json', this.apiUrl);
 
@@ -107,6 +108,10 @@ export class OsTicketApiClient {
 
     if (params.topicId) {
       body.topicId = params.topicId;
+    }
+
+    if (params.attachments && params.attachments.length > 0) {
+      body.attachments = params.attachments;
     }
 
     const response = await this.makeRequest('POST', url.toString(), body);
@@ -254,6 +259,7 @@ export class OsTicketApiClient {
     note?: string;
     noteTitle?: string;
     noteFormat?: string;
+    attachments?: Array<Record<string, string>>;
   }): Promise<UpdateTicketResponse> {
     const resolvedUpdates: Record<string, unknown> = {};
 
@@ -281,6 +287,9 @@ export class OsTicketApiClient {
     if (updates.noteFormat !== undefined) resolvedUpdates.noteFormat = updates.noteFormat;
 
     if (updates.dueDate !== undefined) resolvedUpdates.dueDate = updates.dueDate;
+    if (updates.attachments && updates.attachments.length > 0) {
+      resolvedUpdates.attachments = updates.attachments;
+    }
 
     const safe = this.safeTicketNumber(number, 'updateTicket');
     const url = new URL(`/api/tickets-update.php/${safe}.json`, this.apiUrl);

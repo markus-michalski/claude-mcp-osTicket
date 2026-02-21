@@ -8,7 +8,7 @@
 import { z } from 'zod';
 
 // Import constants from shared module (avoid duplication)
-import { CHARACTER_LIMIT, DEFAULT_LIMIT, MAX_LIMIT } from '../constants.js';
+import { CHARACTER_LIMIT, DEFAULT_LIMIT, MAX_LIMIT, MAX_ATTACHMENTS } from '../constants.js';
 
 // Re-export for convenience
 export { CHARACTER_LIMIT, DEFAULT_LIMIT, MAX_LIMIT };
@@ -52,6 +52,22 @@ export const PaginationSchema = z.object({
     .default(0)
     .describe('Number of results to skip for pagination (default: 0)')
 });
+
+// ============================================================================
+// Attachment Schema
+// ============================================================================
+
+export const AttachmentInputSchema = z.object({
+  path: z.string()
+    .min(1, 'File path is required')
+    .describe('Absolute file path to attach (e.g., "/tmp/screenshot.png")')
+});
+
+export const AttachmentsArraySchema = z.array(AttachmentInputSchema)
+  .min(1, 'At least one attachment is required')
+  .max(MAX_ATTACHMENTS, `Maximum ${MAX_ATTACHMENTS} attachments allowed`)
+  .optional()
+  .describe(`Array of file paths to attach (max ${MAX_ATTACHMENTS}). Each file max 10 MB.`);
 
 // ============================================================================
 // Tool Input Schemas
@@ -149,7 +165,8 @@ export const CreateTicketInputSchema = z.object({
     .int()
     .positive()
     .optional()
-    .describe('Help Topic ID (uses OSTICKET_DEFAULT_TOPIC_ID if not provided)')
+    .describe('Help Topic ID (uses OSTICKET_DEFAULT_TOPIC_ID if not provided)'),
+  attachments: AttachmentsArraySchema
 }).strict();
 
 export type CreateTicketInput = z.infer<typeof CreateTicketInputSchema>;
@@ -194,7 +211,8 @@ const UpdateTicketInputSchemaBase = z.object({
     .describe('Title for internal note (default: "API Update")'),
   noteFormat: z.nativeEnum(ContentFormat)
     .default(ContentFormat.MARKDOWN)
-    .describe('Format for note: markdown (default), html, or text')
+    .describe('Format for note: markdown (default), html, or text'),
+  attachments: AttachmentsArraySchema
 }).strict();
 
 // Schema with refinement for runtime validation
