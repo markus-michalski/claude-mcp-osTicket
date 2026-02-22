@@ -31,6 +31,7 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Changed
 - upgrade eslint to v10 and fix audit warnings
+
 ## [2.2.1] - 2026-02-20
 
 ### Changed
@@ -39,9 +40,8 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 ### Fixed
 - comprehensive security audit fixes and code improvements
 - implement all 20 security audit findings
+
 ## [2.2.0] - 2026-01-05
-
-
 
 
 ---
@@ -50,13 +50,9 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 - Add dueDate parameter to update_ticket tool
-
-
 ---
 
 ## [2.0.2] - 2025-12-19
-
-
 
 
 ---
@@ -69,16 +65,12 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 ### Fixed
 - Correct MCP SDK inputSchema usage and reset version to 2.0.0
 - Rename unused variable to satisfy ESLint no-unused-vars rule
-
-
 ---
 
 ## [1.2.0] - 2025-12-10
 
 ### Added
 - Add projectContext parameter for ticket creation
-
-
 ---
 
 ## [1.1.1] - 2025-11-10
@@ -88,8 +80,6 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Fixed
 - Add graceful MCP server shutdown
-
-
 ---
 
 ## [1.1.0] - 2025-11-08
@@ -100,7 +90,6 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Fixed
 - Remove explicit port from HTTP requests to fix 404 errors
-
 
 ### Added
 - Add Subticket Management tools (4 new MCP tools):
@@ -134,7 +123,6 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 - Improve error message handling for JSON error responses from API
 - Add stricter runtime type validation for API responses
 - Improve error message handling to prevent data leakage
-
 ---
 
 ## [1.0.1] - 2025-11-06
@@ -151,8 +139,6 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Fixed
 - Add ESLint 9.x flat config and fix linting errors
-
-
 ---
 
 ## [1.0.0] - 2025-11-05
@@ -196,24 +182,7 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 - Use ost_ticket__cdata for subject field
 - Load .env from absolute deployment path
 
-### Added
-- Nothing yet
-
-### Changed
-- Nothing yet
-
-### Deprecated
-- Nothing yet
-
-### Removed
-- Nothing yet
-
-### Fixed
-- Nothing yet
-
 ### Security
-- Nothing yet
-
 ---
 
 [Unreleased]: https://github.com/markus-michalski/claude-mcp-osTicket/compare/v2.2.2...HEAD
