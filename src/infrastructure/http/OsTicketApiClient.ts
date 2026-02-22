@@ -431,19 +431,19 @@ export class OsTicketApiClient {
             return;
           }
 
-          // Extract error message from response
+          // Extract error message from response body
           let errorMessage: string;
           try {
             const json = JSON.parse(data);
-            if (json.error && json.message) {
-              errorMessage = json.message;
-            } else {
-              errorMessage = this.getDefaultErrorMessage(statusCode);
-            }
+            // Support both {error, message} and {message} structures.
+            // Use ?? to avoid falsy-value bugs (empty string is a valid message).
+            errorMessage = json.message ?? json.error ?? this.getDefaultErrorMessage(statusCode);
           } catch {
-            // For 404 with a meaningful body, use it
-            if (statusCode === 404 && data && data.trim() !== '') {
-              errorMessage = data.trim();
+            // Non-JSON response (e.g. text/plain from osTicket) —
+            // use the raw body for ALL status codes, not just 404
+            if (data && data.trim() !== '') {
+              // Truncate raw body to prevent huge error messages (e.g. HTML error pages)
+              errorMessage = data.trim().substring(0, 500);
             } else {
               errorMessage = this.getDefaultErrorMessage(statusCode);
             }
@@ -463,7 +463,12 @@ export class OsTicketApiClient {
       });
 
       if (body) {
-        req.write(JSON.stringify(body));
+        const bodyString = JSON.stringify(body);
+        // Set Content-Length explicitly to avoid chunked encoding.
+        // Apache mod_proxy_fcgi can truncate chunked bodies for larger
+        // payloads, causing php://input to be empty/incomplete on the server.
+        req.setHeader('Content-Length', Buffer.byteLength(bodyString, 'utf-8'));
+        req.write(bodyString);
       }
 
       req.end();
