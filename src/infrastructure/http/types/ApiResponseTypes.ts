@@ -5,6 +5,16 @@
  * Fields marked optional may not be present depending on API version/config.
  */
 
+/** Attachment metadata returned with thread entries */
+export interface AttachmentMetadata {
+  id: number;
+  file_id: number;
+  filename: string;
+  size: number;
+  mime_type: string;
+  inline: boolean;
+}
+
 /** Ticket thread entry (message or note) */
 export interface TicketThreadEntry {
   id: number;
@@ -13,6 +23,17 @@ export interface TicketThreadEntry {
   body: string;
   created: string;
   updated?: string;
+  attachments?: AttachmentMetadata[];
+  attachment_count?: number;
+}
+
+/** Attachment download response from GET /api/tickets-attachment-download.php/:file_id.json */
+export interface AttachmentDownloadResponse {
+  file_id: number;
+  filename: string;
+  mime_type: string;
+  size: number;
+  content: string; // base64-encoded
 }
 
 /** Ticket detail response from GET /api/tickets-get.php/:number.json */

@@ -3,7 +3,7 @@
 /**
  * osTicket MCP Server
  *
- * Provides 11 tools for ticket management via osTicket REST API.
+ * Provides 12 tools for ticket management via osTicket REST API.
  * Follows MCP best practices with Zod schemas, proper annotations,
  * and actionable error messages.
  */
@@ -36,6 +36,7 @@ import {
   GetChildTicketsInputSchema,
   CreateSubticketLinkInputSchema,
   UnlinkSubticketInputSchema,
+  DownloadAttachmentInputSchema,
   CHARACTER_LIMIT,
   type GetTicketInput,
   type ListTicketsInput,
@@ -46,11 +47,12 @@ import {
   type GetParentTicketInput,
   type GetChildTicketsInput,
   type CreateSubticketLinkInput,
-  type UnlinkSubticketInput
+  type UnlinkSubticketInput,
+  type DownloadAttachmentInput
 } from './schemas/index.js';
 
 // Utilities
-import { processAttachments } from './utils/attachments.js';
+import { processAttachments, saveAttachmentToTmp } from './utils/attachments.js';
 
 // Constants
 import { SERVER_NAME, SERVER_VERSION } from './constants.js';
@@ -913,6 +915,71 @@ Error Handling:
     } catch (error) {
       return {
         content: [{ type: 'text', text: formatError(error, 'Failed to unlink subticket') }],
+        isError: true
+      };
+    }
+  }
+);
+
+// ============================================================================
+// Tool: osticket_download_attachment
+// ============================================================================
+
+server.registerTool(
+  'osticket_download_attachment',
+  {
+    title: 'Download Attachment',
+    description: `Download a ticket attachment by file ID and save it to a local temp file.
+
+Use the file_id from the attachment metadata returned in ticket thread entries
+(via osticket_get_ticket). The file is saved to the system temp directory.
+
+Args:
+  - file_id (number, required): File ID from thread entry attachment metadata
+
+Returns:
+  {
+    "success": true,
+    "filePath": "/tmp/a1b2c3d4_report.pdf",
+    "filename": "report.pdf",
+    "size": 1024,
+    "mime_type": "application/pdf"
+  }
+
+Error Handling:
+  - Returns error if file_id is invalid
+  - Returns HTTP 403 if file not linked to a ticket attachment
+  - Returns HTTP 404 if file not found`,
+    inputSchema: DownloadAttachmentInputSchema.shape,
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true
+    }
+  },
+  async (params: DownloadAttachmentInput) => {
+    try {
+      const response = await apiClient.downloadAttachment(params.file_id);
+
+      // Save to temp file
+      const filePath = await saveAttachmentToTmp(response.filename, response.content);
+
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            success: true,
+            filePath,
+            filename: response.filename,
+            size: response.size,
+            mime_type: response.mime_type
+          }, null, 2)
+        }]
+      };
+    } catch (error) {
+      return {
+        content: [{ type: 'text', text: formatError(error, 'Failed to download attachment') }],
         isError: true
       };
     }

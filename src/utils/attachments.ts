@@ -1,5 +1,7 @@
-import { readFile, stat } from 'fs/promises';
-import { basename, extname } from 'path';
+import { readFile, stat, writeFile } from 'fs/promises';
+import { basename, extname, join } from 'path';
+import { randomBytes } from 'crypto';
+import { tmpdir } from 'os';
 import {
   MAX_ATTACHMENT_SIZE_BYTES,
   MAX_TOTAL_ATTACHMENT_SIZE_BYTES,
@@ -140,4 +142,25 @@ export async function processAttachments(
   const summary = `${processed.length} file(s) attached: ${filenames.join(', ')} (${totalMB} MB total)`;
 
   return { attachments, summary };
+}
+
+/**
+ * Save base64-encoded attachment content to a temporary file
+ *
+ * @param filename Original filename from the API response
+ * @param base64Content Base64-encoded file content
+ * @returns Absolute path to the saved file in os.tmpdir()
+ */
+export async function saveAttachmentToTmp(filename: string, base64Content: string): Promise<string> {
+  // Sanitize filename: only allow safe characters
+  const sanitized = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+  // Add unique prefix to avoid collisions
+  const prefix = randomBytes(4).toString('hex');
+  const safeName = `${prefix}_${sanitized}`;
+  const filePath = join(tmpdir(), safeName);
+
+  const buffer = Buffer.from(base64Content, 'base64');
+  await writeFile(filePath, buffer);
+
+  return filePath;
 }
