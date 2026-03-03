@@ -11,7 +11,8 @@ import type {
   TicketSummary,
   TicketStatsResponse,
   UpdateTicketResponse,
-  DeleteTicketResponse
+  DeleteTicketResponse,
+  AttachmentDownloadResponse
 } from './types/ApiResponseTypes.js';
 import { OsTicketApiError } from '../errors/OsTicketApiError.js';
 import { API_TIMEOUT_MS } from '../../constants.js';
@@ -303,6 +304,18 @@ export class OsTicketApiClient {
     const safe = this.safeTicketNumber(number, 'deleteTicket');
     const url = new URL(`/api/tickets-delete.php/${safe}.json`, this.apiUrl);
     return await this.makeRequest('DELETE', url.toString()) as DeleteTicketResponse;
+  }
+
+  /**
+   * Download attachment content by file ID
+   * Returns base64-encoded content with file metadata
+   */
+  async downloadAttachment(fileId: number): Promise<AttachmentDownloadResponse> {
+    if (!Number.isInteger(fileId) || fileId < 1) {
+      throw new Error('Invalid file ID: must be a positive integer');
+    }
+    const url = new URL(`/api/tickets-attachment-download.php/${fileId}.json`, this.apiUrl);
+    return await this.makeRequest('GET', url.toString()) as AttachmentDownloadResponse;
   }
 
   /**

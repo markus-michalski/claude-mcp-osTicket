@@ -275,3 +275,15 @@ export const UnlinkSubticketInputSchema = z.object({
 }).strict();
 
 export type UnlinkSubticketInput = z.infer<typeof UnlinkSubticketInputSchema>;
+
+/**
+ * osticket_download_attachment - Download a ticket attachment by file ID
+ */
+export const DownloadAttachmentInputSchema = z.object({
+  file_id: z.number()
+    .int('File ID must be an integer')
+    .positive('File ID must be positive')
+    .describe('File ID from ticket thread entry attachment metadata (file_id field)')
+}).strict();
+
+export type DownloadAttachmentInput = z.infer<typeof DownloadAttachmentInputSchema>;
