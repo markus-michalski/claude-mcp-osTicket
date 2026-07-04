@@ -71,8 +71,8 @@ export class OsTicketApiClient {
    * Defense-in-depth: validate and encode a ticket number for safe URL inclusion
    */
   private safeTicketNumber(number: string, context: string): string {
-    if (!/^\d+$/.test(number) || number.length > 20) {
-      throw new Error(`Invalid ticket number in ${context}: must be 1-20 digits`);
+    if (!/^[A-Za-z0-9]+$/.test(number) || number.length > 20) {
+      throw new Error(`Invalid ticket number in ${context}: must be 1-20 alphanumeric characters`);
     }
     return encodeURIComponent(number);
   }

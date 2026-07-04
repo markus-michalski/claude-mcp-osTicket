@@ -31,8 +31,8 @@ export enum ContentFormat {
 export const TicketNumberSchema = z.string()
   .min(1, 'Ticket number is required')
   .max(20, 'Ticket number must not exceed 20 characters')
-  .regex(/^\d+$/, 'Ticket number must contain only digits')
-  .describe('Public ticket number (e.g., "680284")');
+  .regex(/^[A-Za-z0-9]+$/, 'Ticket number must be alphanumeric')
+  .describe('Public ticket number (e.g., "680284" or "CH00072458")');
 
 export const TicketIdSchema = z.number()
   .int('Ticket ID must be an integer')
@@ -197,7 +197,7 @@ const UpdateTicketInputSchemaBase = z.object({
     .optional()
     .describe('Due date in ISO 8601 format (e.g., "2025-01-31" or "2025-01-31T17:30:00"). Set to null to clear.'),
   parentTicketNumber: z.string()
-    .regex(/^\d+$/, 'Parent ticket number must contain only digits')
+    .regex(/^[A-Za-z0-9]+$/, 'Parent ticket number must be alphanumeric')
     .optional()
     .describe('Parent ticket number (makes this a subticket)'),
   note: z.string()
