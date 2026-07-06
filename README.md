@@ -75,3 +75,9 @@ MIT License - See [LICENSE](./LICENSE) for details
 - **[📚 Vollständige Dokumentation](https://faq.markus-michalski.net/de/mcp/osticket)** (Deutsch)
 - [API Endpoints Plugin](https://github.com/markus-michalski/osticket-plugins/tree/main/api-endpoints)
 - [Changelog](./CHANGELOG.md)
+
+---
+
+[![Built by](https://img.shields.io/badge/built%20by-JorahOne%20LLC-FFB300?style=for-the-badge&labelColor=0d0d0c)](https://github.com/OneByJorah)
+
+<sub>Fork maintained by JorahOne, LLC as part of the JorahOne infrastructure ecosystem.</sub>
